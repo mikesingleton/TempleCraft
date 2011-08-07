@@ -433,31 +433,26 @@ public class Temple {
 		readySet.remove(p);
 		tp.roundDeaths++;
 		tp.currentClass = null;
+		
 		if(balance.hasEnough(JoinCost)){
 			String msg = "To continue playing will cost you "+ChatColor.GOLD+JoinCost+" gold.";
 			TempleManager.tellPlayer(p, msg);
 			msg = "Or type \"/tc leave\" and restart from the beginning!";
 			TempleManager.tellPlayer(p, msg);
-			p.setHealth(20);
-			p.teleport(lobbyLoc);
 		} else {
 			String msg = "You do not have enough gold to rejoin.";
 			TempleManager.tellPlayer(p, msg);
-			tp.displayStats();
-			playerSet.remove(p);
-			TempleManager.playerSet.remove(p);
-			tp.saveData();
-			
-			if(TCUtils.hasPlayerInventory(p.getName())) {
-				TCUtils.restorePlayerInventory(p);
-			}
+			msg = "Please type \"/tc leave\" to leave the temple.";
+			TempleManager.tellPlayer(p, msg);
 		}
 		if (isRunning && playerSet.isEmpty()){
-			p.teleport(TempleManager.locationMap.get(p));
 		    endTemple();
 		}
 		
+		p.teleport(lobbyLoc);
+		p.setHealth(20);
 		p.setFireTicks(0);
+		tp.saveData();
 	}
 	
 	/**

@@ -89,9 +89,9 @@ public class TempleManager
         	classEnabledItemsMap   = TCUtils.getClassItems(config, "classes.","enabled");
         	worldEdit              = TempleCraft.getWorldEdit();
         	loadSets();
+        	loadTemplePlayers();
         	loadEditWorlds();
 	    	loadCustomTemples();
-	    	loadTemplePlayers();
         }
         // Convenience variables.
         checkUpdates            = TCUtils.getBoolean("settings.updatenotification", true);
@@ -101,6 +101,7 @@ public class TempleManager
 		//breakable
     	breakable.add(Material.TNT);
     	breakable.add(Material.COBBLESTONE);
+    	breakable.add(Material.CLAY);
     	//Blocks
     	int[] blockArray = {0,1,2,3,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,29,33,35,41,42,43,44,45,46,47,48,49,52,54,56,57,58,60,61,62,67,73,74,79,80,81,82,84,85,86,87,88,89,90,91,92};
     	for(int i : blockArray)
@@ -136,9 +137,9 @@ public class TempleManager
 	}
 
 	private static void loadTemplePlayers() {
-		for(Player p : server.getOnlinePlayers()){
-			TempleManager.templePlayerMap.put(p, new TemplePlayer(p));
-		}
+		for(Player p : server.getOnlinePlayers())
+			if(!TempleManager.templePlayerMap.containsKey(p))
+				TempleManager.templePlayerMap.put(p, new TemplePlayer(p));
 	}
     
 	private static void loadEditWorlds(){

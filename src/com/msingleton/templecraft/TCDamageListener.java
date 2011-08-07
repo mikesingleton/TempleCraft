@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -148,12 +149,13 @@ public class TCDamageListener extends EntityListener
         if (event.getEntity() instanceof Player)
         {        
             Player p = (Player) event.getEntity();
+            TemplePlayer tp = TempleManager.templePlayerMap.get(p);
             
             if (!TempleManager.playerSet.contains(p))
                 return;
             
             event.getDrops().clear();
-            Temple temple = TCUtils.getTemple(p);
+            Temple temple = tp.currentTemple;
             temple.playerDeath(p);
         }
         // If monster, remove from monster set
@@ -200,16 +202,25 @@ public class TCDamageListener extends EntityListener
             return;
     	
     	Location loc = event.getLocation();
+    	
+    	for(World world : TempleManager.templeEditMap.values()){
+    		if(loc.getWorld().equals(world)){
+    			event.setCancelled(true);
+    			return;
+    		}
+    	}
+    	
     	LivingEntity e = (LivingEntity) event.getEntity();
     	boolean result = true;
-    	for(Temple temple : TempleManager.templeSet)
-    		if(temple.isRunning)
-				if(TCUtils.inRegion(temple.p1, temple.p2, loc))
-					for(Location sploc : temple.getSpawnpoints())
-						if(TCUtils.distance(loc, sploc) < 2){
-							result = false;
-    						temple.monsterSet.add(e);
-						}
+    	if(loc.getWorld().equals(TempleManager.world))
+	    	for(Temple temple : TempleManager.templeSet)
+	    		if(temple.isRunning)
+					if(TCUtils.inRegion(temple.p1, temple.p2, loc))
+						for(Location sploc : temple.getSpawnpoints())
+							if(TCUtils.distance(loc, sploc) < 2){
+								result = false;
+	    						temple.monsterSet.add(e);
+							}
     	
 		event.setCancelled(result);
     }
