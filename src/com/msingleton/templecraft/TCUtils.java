@@ -856,7 +856,7 @@ public class TCUtils
         if(temple.p1 == null || temple.p2 == null)
 			return;
 		
-        String fileName = "plugins/TempleCraft/SavedTemples/"+temple.templeName+".tmp";
+        String fileName = "plugins/TempleCraft/SavedTemples/"+temple.templeName+TempleCraft.fileExtention;
         
         try {
             // Construct a File object for the file to be deleted.

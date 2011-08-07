@@ -38,6 +38,7 @@ public class TempleCraft extends JavaPlugin
     public List<String> DISABLED_COMMANDS;
     public iConomy iConomy = null;
     public static PermissionHandler permissionHandler;
+    public static String fileExtention = ".tcf";
     
     public TempleCraft()
     {

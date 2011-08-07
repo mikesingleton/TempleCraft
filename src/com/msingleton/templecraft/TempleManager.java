@@ -122,8 +122,8 @@ public class TempleManager
     	for(String fileName : folder.list()){
     		if(fileName.contains("/"))
     			continue;
-    		if(fileName.contains(".tmp")){
-    			String templeName = fileName.replace(".tmp", "");
+    		if(fileName.contains(TempleCraft.fileExtention)){
+    			String templeName = fileName.replace(TempleCraft.fileExtention, "");
     			Temple temple;
     			temple = TCUtils.getTempleByName(templeName);
     			if(temple == null)

@@ -66,7 +66,7 @@ public class TCRestore {
 	    	File file = new File("plugins/TempleCraft/"+folder);
         	if(!file.exists())
         		file.mkdir();
-	        FileOutputStream fos = new FileOutputStream("plugins/TempleCraft/"+fileName+".tmp");
+	        FileOutputStream fos = new FileOutputStream("plugins/TempleCraft/"+fileName+TempleCraft.fileExtention);
 	        ObjectOutputStream oos = new ObjectOutputStream(fos);
 	        oos.writeObject(preciousPatch);
 	        oos.close();
@@ -102,8 +102,8 @@ public class TCRestore {
 		HashMap<EntityPosition,String> preciousPatch;
         try
         {
-        	if(!fileName.contains(".tmp"))
-        		fileName = fileName + ".tmp";
+        	if(!fileName.contains(TempleCraft.fileExtention))
+        		fileName = fileName + TempleCraft.fileExtention;
         	File file = new File("plugins/TempleCraft/"+fileName);
             FileInputStream fis = new FileInputStream(file);
             ObjectInputStream ois = new ObjectInputStream(fis);
@@ -158,7 +158,7 @@ public class TCRestore {
 		if(!s.contains("SavedTemples/"))
 			return;
 		
-		String templeName = s.replace("SavedTemples/", "").replace(".tmp", "");
+		String templeName = s.replace("SavedTemples/", "").replace(TempleCraft.fileExtention, "");
 		Temple temple = TCUtils.getTempleByName(templeName);
 		Location loc = b.getLocation();
 		
