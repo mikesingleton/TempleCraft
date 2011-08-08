@@ -1,7 +1,7 @@
 name: TempleCraft
 author: Mike Singleton
 main: com.msingleton.templecraft.TempleCraft
-version: 0.11
+version: 0.12
 commands:
   tc:
     description: Base command for TempleCraft

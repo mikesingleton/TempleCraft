@@ -274,13 +274,13 @@ public class Temple {
 	
 	private void convertSpawnpoints() {
 		for(Block b: getBlockSet(mobSpawner)){
-    		activeSpawnpoints.add(b.getLocation());
+    		activeSpawnpoints.add(b.getLocation().add(.5, .5, .5));
     		b.setTypeId(0);
 		}
 	    for(Block b: getBlockSet(diamondBlock)){
     		Block rb = b.getRelative(0, -1, 0);
     		if(rb.getTypeId() == ironBlock){
-    			templeLoc = rb.getLocation();
+    			templeLoc = rb.getLocation().add(.5, .5, .5);
     			b.setTypeId(0);
     			rb.setTypeId(0);
     		} else if(rb.getTypeId() == goldBlock){
@@ -333,13 +333,13 @@ public class Temple {
 	
 	// Removes players from temple
 	public void removePlayers(){
-		Set<Player> tempSet = new HashSet<Player>();
-		tempSet.addAll(playerSet);
-		tempSet.addAll(spectatorSet);
-		
-		Iterator<Player> iterator = tempSet.iterator();
-		while (iterator.hasNext())
-		    TempleManager.playerLeave(iterator.next());
+		for(Player p: TempleManager.server.getOnlinePlayers()){
+			TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+			if(tp == null)
+				return;
+			if(tp.currentTemple != null)
+				TempleManager.playerLeave(p);
+		}
 	}
 	
 	/**
@@ -371,7 +371,7 @@ public class Temple {
 	}
 	if (isRunning)
 	{
-	    tellPlayer(p, "Temple in progress. Type /ma spec to watch.");
+	    tellPlayer(p, "Temple in progress.");
 	    return;
 	}
 	

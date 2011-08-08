@@ -24,6 +24,8 @@ public class TemplePlayer{
     protected Map<String,String> classArmorMap  = new HashMap<String,String>();
     protected Set<String> ownerOfSet = new HashSet<String>();
     protected Set<String> accessToSet = new HashSet<String>();
+    protected String ownerOf = "";
+    protected String accessTo = "";
     public String name, currentClass;
     public Temple currentTemple;
 	
@@ -44,14 +46,12 @@ public class TemplePlayer{
     	c.load(); 
     	
     	for(String s : c.getString("Players."+name+".Temples.ownerOf","").split(","))
-    		for(Temple temple : TempleManager.templeSet)
-    			if(temple.templeName.equals(s))
-    				ownerOfSet.add(s);
+    		ownerOfSet.add(s);
     	
     	for(String s : c.getString("Players."+name+".Temples.accessTo","").split(","))
-    		for(Temple temple : TempleManager.templeSet)
-    			if(temple.templeName.equals(s))
-    				accessToSet.add(s);
+    		accessToSet.add(s);
+    	
+    	updateAccess();
     	
     	for(String className : TempleManager.classes){
 		    classXp.put(className, c.getInt("Players."+name+".classes."+className+".xp", 0));
@@ -103,18 +103,23 @@ public class TemplePlayer{
 	
 	public void addOwnerOf(String templeName){
 		ownerOfSet.add(templeName);
-		saveData();
+		updateAccess();
+	}
+	
+	public void removeOwnerOf(String templeName){
+		ownerOfSet.remove(templeName);
+		updateAccess();
 	}
 	
 	public void addAccessTo(String templeName){
 		accessToSet.add(templeName);
-		saveData();
+		updateAccess();
 	}
 	
 	public void removeAccessTo(String templeName){
 		ownerOfSet.remove(templeName);
 		accessToSet.remove(templeName);
-		saveData();
+		updateAccess();
 	}
 	
 	private String handleItemString(String currentItems, String item){
@@ -141,26 +146,48 @@ public class TemplePlayer{
 		TempleManager.tellPlayer(player, "Account Saved");
 	}
 	
+	public void updateAccess(){
+		StringBuilder ownerOf = new StringBuilder();
+    	for(String s : ownerOfSet)
+    		if(TempleManager.templeSet.isEmpty()){
+    			if(ownerOf.length() == 0)
+    				ownerOf.append(s);
+    			else
+    				ownerOf.append(","+s);
+    		} else {
+	    		for(Temple temple : TempleManager.templeSet)
+	    			if(temple.templeName.equals(s))
+		    			if(ownerOf.length() == 0)
+		    				ownerOf.append(s);
+		    			else
+		    				ownerOf.append(","+s);
+    		}
+    	
+    	StringBuilder accessTo = new StringBuilder();
+    	for(String s : accessToSet)
+    		if(TempleManager.templeSet.isEmpty()){
+    			if(accessTo.length() == 0)
+    				accessTo.append(s);
+    			else
+    				accessTo.append(","+s);
+    		} else {
+	    		for(Temple temple : TempleManager.templeSet)
+	    			if(temple.templeName.equals(s))
+		    			if(accessTo.length() == 0)
+		    				accessTo.append(s);
+		    			else
+		    				accessTo.append(","+s);
+    		}
+    	
+    	this.ownerOf = ownerOf.toString();
+    	this.accessTo = accessTo.toString();
+	}
+	
 	public void saveData(){		
 		Configuration c = config;
     	c.load();
     	
-    	StringBuilder ownerOf = new StringBuilder();
-    	for(String s : accessToSet)
-    		if(ownerOf.length() == 0)
-    			ownerOf.append(s);
-    		else
-    			ownerOf.append(","+s);
-    	
-    	c.setProperty("Players."+name+".Temples.ownerOf", ownerOf.toString());
-    	
-    	StringBuilder accessTo = new StringBuilder();
-    	for(String s : accessToSet)
-    		if(accessTo.length() == 0)
-    			accessTo.append(s);
-    		else
-    			accessTo.append(","+s);
-    	
+    	c.setProperty("Players."+name+".Temples.ownerOf", ownerOf.toString());    	
     	c.setProperty("Players."+name+".Temples.accessTo", accessTo.toString());
     	
     	for(String className : TempleManager.classes){

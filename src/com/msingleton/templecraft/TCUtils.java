@@ -133,7 +133,7 @@ public class TCUtils
 	
     /* Gives all the items in the input string(s) to the player */
     public static void giveItems(boolean reward, Player p, String... strings)
-    {
+    {    	
         // Variables used.
         ItemStack stack;
         int id, amount;
@@ -156,7 +156,7 @@ public class TCUtils
             
             // For every item in the list
             for (String i : items)
-            {
+            {            	
                 /* Take into account possible amount, and if there is
                  * one, set the amount variable to that amount, else 1. */
                 i = i.trim();
@@ -327,14 +327,16 @@ public class TCUtils
         return TempleManager.server.getWorld("templeworld");
     }
     
-    public static World getEditWorld(Player p, String s)
+    public static World getEditWorld(Player p, Temple temple)
     {    	
     	World result;    	
-    	if(TempleManager.templeEditMap.containsKey(s)){
-    		result = TempleManager.templeEditMap.get(s);
+    	if(TempleManager.templeEditMap.containsKey(temple.templeName)){
+    		result = TempleManager.templeEditMap.get(temple.templeName);
     	} else {
     		result = nextAvailableEditWorld(p);
-    		TempleManager.templeEditMap.put(s, result);
+    		TempleManager.templeEditMap.put(temple.templeName, result);
+    		TempleManager.clearWorld(result);
+    		temple.loadTemple(result);
     	}
     	
     	return result;
@@ -444,64 +446,6 @@ public class TCUtils
         return result;
     }
     
-    public static Map<String,String> getSpecialTraitsMap()
-    {
-    	Configuration c = TempleManager.config;
-        c.load();
-       
-        // Set up variables and resulting map.
-        List<String> classes = c.getKeys("classes");
-        if (classes == null)
-            return new HashMap<String,String>();
-        
-        Map<String,String> result = new HashMap<String,String>();
-        String temp;
-        
-        /* Check if the keys exist in the config-file, if not, set some. */
-        for (String classname : classes)
-        {
-	        if (c.getString("classes." + classname + ".specialTraits") == null)
-	        {
-	        	c.setProperty("classes." + classname + ".specialTraits", "none");
-	        	c.save();
-	        }
-	        
-	        temp = c.getString("classes." + classname + ".specialTraits");
-	        if(temp != null)
-		        result.put(classname, temp);
-        }
-        
-        // And return the resulting map.
-        return result;
-    }
-    
-    /**
-     * Grabs the distribution coefficients from the config-file. If
-     * no coefficients are found, defaults (10) are added.
-     */
-    public static int getDistribution(String monster)
-    {
-        return getDistribution(monster, "default");
-    }
-    
-    public static int getDistribution(String monster, String type)
-    {
-        Configuration c = TempleManager.config;
-        c.load();
-        
-        if (c.getInt("waves." + type + "." + monster, -1) == -1)
-        {
-            int dist = 10;
-            if (monster.equals("giants") || monster.equals("ghasts"))
-                dist = 0;
-            
-            c.setProperty("waves." + type + "." + monster, dist);
-            c.save();
-        }
-        
-        return c.getInt("waves." + type + "." + monster, 0);
-    }
-    
     /**
      * Grabs an int from the config-file.
      */
@@ -516,6 +460,20 @@ public class TCUtils
         c.save();
         return result;
     }
+    
+    /**
+     * Grabs a string from the config-file.
+     */
+	private static String getString(String path, String def) {
+		Configuration c = TempleManager.config;
+        c.load();
+        
+        String result = c.getString(path, def);
+        c.setProperty(path, result);
+        
+        c.save();
+        return result;
+	}
     
     /**
      * Grabs a boolean from the config-file.
@@ -560,49 +518,7 @@ public class TCUtils
     }
     
     /**
-     * Maintains the invariant that p1's coordinates are of lower
-     * values than their respective counter-parts of p2. Makes the
-     * inRegion()-method much faster/easier.
-     */
-    public static void fixCoords()
-    {
-    	/*
-        Location p1 = getCoords("p1");
-        Location p2 = getCoords("p2");
-        double tmp;
-        
-        if (p1 == null || p2 == null)
-            return;
-            
-        if (p1.getX() > p2.getX())
-        {
-            tmp = p1.getX();
-            p1.setX(p2.getX());
-            p2.setX(tmp);
-        }
-        
-        if (p1.getY() > p2.getY())
-        {
-            tmp = p1.getY();
-            p1.setY(p2.getY());
-            p2.setY(tmp);
-        }
-        
-        if (p1.getZ() > p2.getZ())
-        {
-            tmp = p1.getZ();
-            p1.setZ(p2.getZ());
-            p2.setZ(tmp);
-        }
-        
-        setCoords("p1", p1);
-        setCoords("p2", p2);
-        */
-    }
-    
-    /**
-     * Expands the arena region either upwards, downwards, or
-     * outwards (meaning on both the X and Z axes).
+     * Expands the temple region outward if necessary
      */
     public static void expandRegion(Temple temple, Location loc)
     {    	
@@ -622,21 +538,6 @@ public class TCUtils
 			p1.setX(loc.getBlockX());
         if(loc.getBlockZ() < p1.getZ())
 			p1.setZ(loc.getBlockZ());
-    }
-    
-    public static String spawnList()
-    {
-        Configuration c = TempleManager.config;
-        c.load();
-        
-        String result = "";
-        if (c.getKeys("coords.spawnpoints") == null)
-            return result;
-        
-        for (String s : c.getKeys("coords.spawnpoints"))
-            result += s + " ";
-        
-        return result;
     }
     
     /**
@@ -683,30 +584,10 @@ public class TCUtils
     
     // ///////////////////////////////////////////////////////////////////// */
     
-    public static String getRandomSavedRoom(String s) {
-		File dir = new File("plugins/TempleCraft/SavedRooms/");
-		Random r = new Random();
-		boolean go = false;
-		File[] files = dir.listFiles();
-		if(files == null)
-			return null;
-		for(File f : files)
-			if(f.getName().contains(s)){
-				go = true;
-				if(r.nextInt(files.length) == 0)
-					return f.getName();
-			}
-		if(go)
-			return getRandomSavedRoom(s);
-		else
-			return null;
-	}
-    
     public static Temple getTemple(Entity entity){
     	for(Temple temple : TempleManager.templeSet)
         	if(inRegion(temple.p1, temple.p2, entity.getLocation()))
         		return temple;
-    	
     	return null;
     }
     
@@ -714,38 +595,15 @@ public class TCUtils
     	for(Temple temple : TempleManager.templeSet)
         	if(temple.templeName.equals(templeName))
         		return temple;
-    	
     	return null;
-    }
+    } 
     
-    /**
-     * Verifies that all important variables are declared. Returns true
-     * if, and only if, the warppoints, region, distribution coefficients,
-     * classes and spawnpoints are all set up.
-     */
-    public static boolean verifyData()
-    {
-    	/*
-        return ((TempleManager.dZombies     != -1)   &&
-                (TempleManager.dSkeletons   != -1)   &&
-                (TempleManager.dSpiders     != -1)   &&
-                (TempleManager.dCreepers    != -1)   &&
-                (TempleManager.classes.size() > 0)   &&
-                (TempleManager.spawnpoints.size() > 0));
-                */
-    	return true;
-    }   
-    
-    /**
-     * Notifies the player if TempleCraft is set up and ready to be used.
-     */
-    public static void notifyIfSetup(Player p)
-    {
-        if (verifyData())
-        {
-            TempleManager.tellPlayer(p, "TempleCraft is set up and ready to roll!");
-        }
-    }
+    public static Player getPlayerByName(String playerName){
+		for(Player p : TempleManager.server.getOnlinePlayers())
+			if(p.getName().equals(playerName))
+				return p;
+		return null;
+	}
     
     /**
      * Checks if there is a new update of TempleCraft and notifies the
@@ -919,7 +777,7 @@ public class TCUtils
 			}
 		}
 		
-		World EditWorld = TCUtils.getEditWorld(p, templeName);
+		World EditWorld = TCUtils.getEditWorld(p, temple);
 		TempleManager.clearWorld(EditWorld);
 		
 		if(EditWorld == null)
@@ -934,7 +792,7 @@ public class TCUtils
 	public static void editTemple(Player p, Temple temple) {		
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		
-		if(!tp.accessToSet.contains(temple.templeName) && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
+		if(!tp.accessToSet.contains(temple.templeName) && !tp.ownerOfSet.contains(temple.templeName) && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
 			TempleManager.tellPlayer(p, "You do not have permission to edit this temple.");
 			return;
 		}
@@ -944,68 +802,72 @@ public class TCUtils
 			return;
 		}
 		
-		World EditWorld = TCUtils.getEditWorld(p, temple.templeName);
-		TempleManager.clearWorld(EditWorld);
+		World EditWorld = TCUtils.getEditWorld(p, temple);
 		
 		if(EditWorld == null)
 			return;
 		
-		temple.loadTemple(EditWorld);
 		tp.currentTemple = temple;
 		if(!TempleManager.locationMap.containsKey(p))
 			TempleManager.locationMap.put(p, p.getLocation());
 		teleportToWorld(EditWorld, p);
 	}
 	
-	public static void addAccessTo(Player p, String name, Temple temple){
-		Configuration c = TemplePlayer.config;
-		c.load();
-		if(c.getKeys("Players") != null){
-			for(String player : c.getKeys("Players")){
-				if(player.toLowerCase().contains(name)){
-					String s = c.getString("Players."+player+".Temples.accessTo", temple.templeName);
-					if(!s.contains(temple.templeName)){
-						c.setProperty("Players."+player+".Temples.accessTo", s + "," + temple.templeName);
-						TempleManager.tellPlayer(p, "Player \""+player+"\" added to temple.");
-					} else {
-						TempleManager.tellPlayer(p, "Player \""+player+"\" already has access to this temple.");
-					}
-					c.save();
-					return;
-				}
+	public static boolean addAccessTo(String playerName, Temple temple){
+		Player playerToAdd = TCUtils.getPlayerByName(playerName);
+		//if player is not online
+		if(playerToAdd == null){
+			Configuration c = TemplePlayer.config;
+			c.load();
+			String s = c.getString("Players."+playerName+".Temples.accessTo", "");
+			if(s.equals("")){
+				c.setProperty("Players."+playerName+".Temples.accessTo", temple.templeName);
+			} else if(!s.contains(temple.templeName)){
+				c.setProperty("Players."+playerName+".Temples.accessTo", s + "," + temple.templeName);
+				c.save();
+				return true;
+			}
+		} else {
+			TemplePlayer tp = TempleManager.templePlayerMap.get(playerToAdd);
+			if(tp.accessToSet.contains(temple.templeName)){
+				tp.addAccessTo(temple.templeName);
+				return true;
 			}
 		}
-		
-		TempleManager.tellPlayer(p, "Player not found.");
-		c.save();
-		return;
+		return false;
 	}
 	
-	public static void removeAccessTo(Player p, String name, Temple temple){
-		Configuration c = TemplePlayer.config;
-		c.load();
-		if(c.getKeys("Players") != null){
-			for(String player : c.getKeys("Players")){
-				if(player.toLowerCase().contains(name)){
-					String s = c.getString("Players."+player+".Temples.accessTo", "");
-					if(s.contains(","+temple.templeName)){
-						c.setProperty("Players."+player+".Temples.accessTo", s.replace(","+temple.templeName, ""));
-						TempleManager.tellPlayer(p, "Player \""+player+"\" removed from temple.");
-					} else if(s.contains(temple.templeName)) {
-						c.setProperty("Players."+player+".Temples.accessTo", s.replace(temple.templeName, ""));
-						TempleManager.tellPlayer(p, "Player \""+player+"\" removed from temple.");
-					} else {
-						TempleManager.tellPlayer(p, "Player \""+player+"\" does not have access to this temple.");
-					}
-					c.save();
-					return;
-				}
+	// Removes a player's access to a temple
+	
+	public static boolean removeAccessTo(String playerName, Temple temple){
+		Player playerToRemove = TCUtils.getPlayerByName(playerName);
+		//if player is offline
+		if(playerToRemove == null){
+			Configuration c = TemplePlayer.config;
+			c.load();
+			String s = c.getString("Players."+playerName+".Temples.accessTo", "");
+			if(s.contains(temple.templeName)){
+				c.setProperty("Players."+playerName+".Temples.accessTo", s.replace(temple.templeName, ""));
+				c.save();
+				return true;
+			}
+		} else {
+			TemplePlayer tp = TempleManager.templePlayerMap.get(playerToRemove);
+			if(tp.accessToSet.contains(temple.templeName)){
+				tp.removeAccessTo(temple.templeName);
+				return true;
 			}
 		}
-		
-		TempleManager.tellPlayer(p, "Player not found.");
-		c.save();
-		return;
+		return false;
+	}
+	
+	public static String getKey(Configuration c, String path, String key){
+		c.load();
+		if(c.getKeys(path) != null)
+			for(String result : c.getKeys(path))
+				if(result.toLowerCase().contains(key.toLowerCase()))
+					return result;
+		return null;
 	}
 	
 	public static void teleportToWorld(World world, Player p){

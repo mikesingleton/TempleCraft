@@ -4,6 +4,7 @@ import java.util.HashMap;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
@@ -36,6 +37,10 @@ public class TCMonsterListener extends EntityListener
          * also cancels the explosion animation. This is a workaround. */
         if (temple == null)
             return;
+        
+        // Only apply to creepers
+        if(!(event.getEntity() instanceof LivingEntity))
+        	return;
         
         // Don't drop any blocks from the explosion.
         event.setYield(0);

@@ -129,8 +129,6 @@ public class TempleManager
     			temple = TCUtils.getTempleByName(templeName);
     			if(temple == null)
     				temple = new Temple(templeName);
-    			else
-    				temple.endTemple();
     			temple.loadTemple(world);
     		}
     	}	
@@ -206,6 +204,7 @@ public class TempleManager
     	
     	temple.spectatorSet.remove(p);
 		tp.currentClass = null;
+		tp.currentTemple = null;
 		playerSet.remove(p);
 		
 		if(temple.playerSet.remove(p)){			
@@ -223,9 +222,9 @@ public class TempleManager
 			if (!temple.readySet.isEmpty() && temple.readySet.equals(playerSet))
 				temple.startTemple();
 		
-		p.teleport(locationMap.get(p));
+		if(locationMap.containsKey(p))
+			p.teleport(locationMap.get(p));
 		locationMap.remove(p);
-		tp.currentTemple = null;
 	}
     
 	/* ///////////////////////////////////////////////////////////////////// //
@@ -255,8 +254,10 @@ public class TempleManager
 		String className  = tp.currentClass;
 		String classItems = tp.classItemMap.get(className);
 		String classArmor = tp.classArmorMap.get(className);
-		TCUtils.giveItems(p, classItems);
-		TCUtils.equipArmor(p, classArmor);
+		if(!classItems.isEmpty())
+			TCUtils.giveItems(p, classItems);
+		if(!classArmor.isEmpty())
+			TCUtils.equipArmor(p, classArmor);
 	}
     
     /* ///////////////////////////////////////////////////////////////////// //

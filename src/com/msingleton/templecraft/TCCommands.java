@@ -209,8 +209,18 @@ public class TCCommands implements CommandExecutor
     			return true;
     		}
     		
-    		TCUtils.addAccessTo(p, arg, temple);
-            return true;
+    		//Find player in config based on what was entered;
+    		String playerName = TCUtils.getKey(TemplePlayer.config, "Players", arg);
+    		
+    		if(playerName == null){
+    			TempleManager.tellPlayer(p, "Player not found.");
+    		} else {
+    			if(TCUtils.addAccessTo(playerName, temple))
+    				TempleManager.tellPlayer(p, "Added \""+playerName+"\" to temple.");
+    			else
+    				TempleManager.tellPlayer(p, "\""+playerName+"\" already has access to this temple.");
+    		}
+    		return true;
         }
         
         if (cmd.equals("remove") && TCPermissionHandler.hasPermission(p, "templecraft.removeplayer"))
@@ -227,7 +237,17 @@ public class TCCommands implements CommandExecutor
     			return true;
     		}
     		
-    		TCUtils.removeAccessTo(p, arg, temple);
+    		//Find player in config based on what was entered;
+    		String playerName = TCUtils.getKey(TemplePlayer.config, "Players", arg);
+    		
+    		if(playerName == null){
+    			TempleManager.tellPlayer(p, "Player not found.");
+    		} else {
+    			if(TCUtils.removeAccessTo(playerName, temple))
+    				TempleManager.tellPlayer(p, "Removed \""+playerName+"\" from temple.");
+    			else
+    				TempleManager.tellPlayer(p, "\""+playerName+"\" does not have access to this temple.");
+    		}
             return true;
         }
         
