@@ -105,9 +105,9 @@ public class TCCommands implements CommandExecutor
     				TempleManager.tellPlayer(p, "TempleWorld is currently in use. Please wait or use \"/forceend <templename>\" to end the temples.");
     				return true;
     			}
-    			TempleManager.loadCustomTemples();
-        		TempleManager.tellPlayer(p, "Temples Reloaded");
     		}
+    		TempleManager.loadCustomTemples();
+    		TempleManager.tellPlayer(p, "Temples Reloaded");
             return true;
         }
     	
