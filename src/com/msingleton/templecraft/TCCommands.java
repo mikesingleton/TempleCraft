@@ -99,16 +99,21 @@ public class TCCommands implements CommandExecutor
     	
     	if (cmd.equals("reload") && TCPermissionHandler.hasPermission(p, "templecraft.reload"))
         {
-        	TempleManager.loadCustomTemples();
-        	TempleManager.tellPlayer(p, "Temples Reloaded");
+    		for(Player tempp : TempleManager.world.getPlayers()){
+    			TemplePlayer temptp = TempleManager.templePlayerMap.get(tempp);
+    			if(temptp.currentTemple != null){
+    				TempleManager.tellPlayer(p, "TempleWorld is currently in use. Please wait or use \"/forceend <templename>\" to end the temples.");
+    				return true;
+    			}
+    			TempleManager.loadCustomTemples();
+        		TempleManager.tellPlayer(p, "Temples Reloaded");
+    		}
             return true;
         }
     	
         if ((cmd.equals("playerlist") || cmd.equals("plist")) && TCPermissionHandler.hasPermission(p, "templecraft.playerlist"))
         {
         	if(TempleManager.playerSet.contains(p))
-        		TCUtils.getTemple(p).playerList(p);
-        	else
         		TempleManager.playerList(p);
             return true;
         }

@@ -829,7 +829,7 @@ public class TCUtils
 			}
 		} else {
 			TemplePlayer tp = TempleManager.templePlayerMap.get(playerToAdd);
-			if(tp.accessToSet.contains(temple.templeName)){
+			if(!tp.accessToSet.contains(temple.templeName)){
 				tp.addAccessTo(temple.templeName);
 				return true;
 			}

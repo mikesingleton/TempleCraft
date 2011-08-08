@@ -337,7 +337,7 @@ public class Temple {
 			TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 			if(tp == null)
 				return;
-			if(tp.currentTemple != null)
+			if(tp.currentTemple == this && p.getWorld().equals(TempleManager.world))
 				TempleManager.playerLeave(p);
 		}
 	}

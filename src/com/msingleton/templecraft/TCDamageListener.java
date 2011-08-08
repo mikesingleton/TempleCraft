@@ -211,17 +211,17 @@ public class TCDamageListener extends EntityListener
     	}
     	
     	LivingEntity e = (LivingEntity) event.getEntity();
-    	boolean result = true;
-    	if(loc.getWorld().equals(TempleManager.world))
+    	if(loc.getWorld().equals(TempleManager.world)){
+    		boolean result = true;
 	    	for(Temple temple : TempleManager.templeSet)
 	    		if(temple.isRunning)
 					if(TCUtils.inRegion(temple.p1, temple.p2, loc))
 						for(Location sploc : temple.getSpawnpoints())
 							if(TCUtils.distance(loc, sploc) < 2){
-								result = false;
 	    						temple.monsterSet.add(e);
+	    						result = false;
 							}
-    	
-		event.setCancelled(result);
+	    	event.setCancelled(result);
+    	}
     }
 }
