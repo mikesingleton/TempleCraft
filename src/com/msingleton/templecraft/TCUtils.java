@@ -753,7 +753,7 @@ public class TCUtils
      */
     public static void checkForUpdates(final Player p, boolean response)
     {
-        String site = "http://forums.bukkit.org/threads/818.19144/";
+        String site = "http://forums.bukkit.org/threads/30111/";
         try
         {
             // Make a URL of the site address
@@ -773,10 +773,13 @@ public class TCUtils
             }
             
             // Otherwise, grab the location header to get the real URI.
-            String url = new URI(con.getHeaderField("Location")).toString();
+            String[] url = new URI(con.getHeaderField("Location")).toString().split("-");
+            double urlVersion = Double.parseDouble(url[3].replace("v", "")+"."+url[4]);
+            
+            double thisVersion = Double.parseDouble(TempleManager.plugin.getDescription().getVersion());
             
             // If the current version is the same as the thread version.
-            if (url.contains(TempleManager.plugin.getDescription().getVersion().replace(".", "-")))
+            if (urlVersion == thisVersion)
             {
                 if (!response)
                     return;
