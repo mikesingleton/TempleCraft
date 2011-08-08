@@ -1,12 +1,12 @@
 name: TempleCraft
 author: Mike Singleton
 main: com.msingleton.templecraft.TempleCraft
-version: 0.1
+version: 0.11
 commands:
   tc:
     description: Base command for TempleCraft
     usage: |
-           /tc help - Show commands you can use.
+           /tc - List commands you have permission to use.
 permissions:
     templecraft.*:
         description: Gives access to all TempleCraft commands
