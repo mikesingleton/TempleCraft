@@ -222,8 +222,12 @@ public class TempleManager
 			if (!temple.readySet.isEmpty() && temple.readySet.equals(playerSet))
 				temple.startTemple();
 		
-		if(locationMap.containsKey(p))
+		if(locationMap.containsKey(p)){
 			p.teleport(locationMap.get(p));
+		} else {
+			String msg = "We have lost track of your origin. Please request assistance.";
+			TempleManager.tellPlayer(p, msg);
+		}
 		locationMap.remove(p);
 	}
     

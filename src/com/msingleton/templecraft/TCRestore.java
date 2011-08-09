@@ -36,7 +36,8 @@ public class TCRestore {
 	    HashMap<EntityPosition, String> preciousPatch = new HashMap<EntityPosition, String>();
 	    Location lo;
 	    String id;
-	    for (int j = y1; j <= y2; j++)
+	    // Save top to bottom so it loads bottom to top
+	    for (int j = y2; j <= y1; j--)
         {
 	    	for (int i = x1; i <= x2; i++)
 	    	{
@@ -98,16 +99,15 @@ public class TCRestore {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static Set<Block> loadRegion(Location startLoc, String fileName){
+	public static void loadTemple(Location startLoc, Temple temple){
 		World world = startLoc.getWorld();
-		Set<Block> loadedBlocks = new HashSet<Block>();
+		
+		String fileName = temple.templeName + TempleCraft.fileExtention;
 		
 		HashMap<EntityPosition,String> preciousPatch;
         try
         {
-        	if(!fileName.contains(TempleCraft.fileExtention))
-        		fileName = fileName + TempleCraft.fileExtention;
-        	File file = new File("plugins/TempleCraft/"+fileName);
+        	File file = new File("plugins/TempleCraft/SavedTemples/"+fileName);
             FileInputStream fis = new FileInputStream(file);
             ObjectInputStream ois = new ObjectInputStream(fis);
             preciousPatch = (HashMap<EntityPosition,String>) ois.readObject();
@@ -116,8 +116,10 @@ public class TCRestore {
         catch (Exception e)
         {
             System.out.println("Couldn't find backup file...");
-            return loadedBlocks;
+            return;
         }
+        
+        // Loads Blocks first so redstone and torches have something to sit on
         
         for (EntityPosition ep : preciousPatch.keySet())
         {
@@ -129,10 +131,12 @@ public class TCRestore {
         	Block b = world.getBlockAt(loc);
         	if(TempleManager.blockSet.contains(Integer.parseInt(s[0]))){
         		b.setTypeIdAndData(Integer.parseInt(s[0]), Byte.parseByte(s[1]), true);
-        		loadedBlocks.add(b);
-        		checkRegion(fileName, b);
-        	}	
+        		addToTempleSets(temple, b);
+        		TCUtils.expandRegion(temple, loc);
+        	}
         }
+        
+        // Loads everything else that is not a Block
         
         for (EntityPosition ep : preciousPatch.keySet())
         {
@@ -144,8 +148,8 @@ public class TCRestore {
         	Block b = world.getBlockAt(loc);
         	if(!TempleManager.blockSet.contains(Integer.parseInt(s[0]))){
         		b.setTypeIdAndData(Integer.parseInt(s[0]), Byte.parseByte(s[1]), true);
-        		loadedBlocks.add(b);
-        		checkRegion(fileName, b);
+        		addToTempleSets(temple, b);
+        		TCUtils.expandRegion(temple, loc);
 	        	if(b.getTypeId() == 68 || b.getTypeId() == 63){
 	        		if(s.length > 2){
 	        			for(int i = 2; i<s.length;i++){
@@ -156,20 +160,13 @@ public class TCRestore {
 	        	}
         	}
         }
-        
-        return loadedBlocks;
 	}
-	
-	private static void checkRegion(String s, Block b) {
-		//Fix s to templename
-		if(!s.contains("SavedTemples/"))
-			return;
-		
-		String templeName = s.replace("SavedTemples/", "").replace(TempleCraft.fileExtention, "");
-		Temple temple = TCUtils.getTempleByName(templeName);
-		Location loc = b.getLocation();
-		
-		TCUtils.expandRegion(temple, loc);
+
+	private static void addToTempleSets(Temple temple, Block b) {
+		temple.blockSet.add(b);
+		for(int id : Temple.coordBlocks)
+			if(b.getTypeId() == id)
+				temple.coordBlockSet.add(b);
 	}
 
 	public static void clearEntities(Location p1, Location p2)

@@ -92,13 +92,14 @@ public class Temple {
     protected Set<Block> tempBlockSet          = new HashSet<Block>();
     
     protected Set<Block> blockSet          = new HashSet<Block>();
+    protected Set<Block> coordBlockSet     = new HashSet<Block>();
     protected Set<Block> endBlockSet       = new HashSet<Block>();
     public Set<Block> lobbyBlockSet        = new HashSet<Block>();
     public static int mobSpawner = 7;
     public static int diamondBlock = 57;
     public static int ironBlock = 42;
     public static int goldBlock = 41;
-    public static int[] coordBlocks = {mobSpawner, diamondBlock, ironBlock, goldBlock};
+    public static int[] coordBlocks = {mobSpawner, diamondBlock, ironBlock, goldBlock, 63, 68};
     
     public static int JoinCost = 500;
     
@@ -142,10 +143,7 @@ public class Temple {
 		p2 = null;
 		
 		Location startLoc = getFreeLocation(w);
-		if(blockSet.isEmpty() && w.equals(TempleManager.world))
-			blockSet = TCRestore.loadRegion(startLoc, "SavedTemples/"+templeName);
-		else
-			TCRestore.loadRegion(startLoc, "SavedTemples/"+templeName);
+		TCRestore.loadTemple(startLoc, this);
 		
 		if(!isSetup){
 			if(trySetup()){
@@ -303,7 +301,7 @@ public class Temple {
 	    
 	    Set<Block> result = new HashSet<Block>();
 	    
-	    for(Block b : blockSet)
+	    for(Block b : coordBlockSet)
 	    	if(b.getTypeId() == id)
 	    		result.add(b);
 	    
@@ -438,16 +436,11 @@ public class Temple {
 			msg = "Or type \"/tc leave\" and restart from the beginning!";
 			TempleManager.tellPlayer(p, msg);
 			p.teleport(lobbyLoc);
+			p.setHealth(20);
 		} else {
 			msg = "You do not have enough gold to rejoin.";
 			TempleManager.tellPlayer(p, msg);
-			if(TempleManager.locationMap.containsKey(p)){
-				p.teleport(TempleManager.locationMap.get(p));
-			} else {
-				msg = "We have lost track of your origin. Please request assistance.";
-				TempleManager.tellPlayer(p, msg);
-				p.teleport(lobbyLoc);
-			}
+			TempleManager.playerLeave(p);
 		}
 		if (isRunning && playerSet.isEmpty()){
 		    endTemple();
