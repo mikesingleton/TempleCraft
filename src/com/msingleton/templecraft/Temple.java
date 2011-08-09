@@ -91,7 +91,6 @@ public class Temple {
     protected Set<LivingEntity> monsterSet = new HashSet<LivingEntity>();
     protected Set<Block> tempBlockSet          = new HashSet<Block>();
     
-    protected Set<Block> blockSet          = new HashSet<Block>();
     protected Set<Block> coordBlockSet     = new HashSet<Block>();
     protected Set<Block> endBlockSet       = new HashSet<Block>();
     public Set<Block> lobbyBlockSet        = new HashSet<Block>();
@@ -142,30 +141,28 @@ public class Temple {
 		Location startLoc = getFreeLocation(w);
 		
 		if(p1 != null && p2 != null){
-			clearTemple(startLoc);
+			//clearFoundation(startLoc);
+			//clearEntities();
 		}
-		p1 = null;
-		p2 = null;
+		clearTemple();
 		
 		TCRestore.loadTemple(startLoc, this);
 		
-		if(!isSetup){
-			if(trySetup()){
-				isSetup = true;
-				loadTemple(w);
-			}
+		if(!isSetup && trySetup()){
+			isSetup = true;
 		}
 		
-		if(p1 != null && p2 != null)
-			clearEntities();
 	}
-	
-	private void clearTemple(Location startLoc) {
-		blockSet.clear();
+
+	private void clearTemple() {
 		coordBlockSet.clear();
 		lobbyBlockSet.clear();
 		endBlockSet.clear();
-		
+		p1 = null;
+		p2 = null;
+	}
+
+	private void clearFoundation(Location startLoc) {		
 		// Regenerate Chunks where temple will be
 		
 		int x1 = startLoc.getBlockX() + p1.getBlockX();
@@ -333,7 +330,7 @@ public class Temple {
 		activeSpawnpoints.clear();
 		inactiveSpawnpoints.clear();
 		loadTemple(world);
-		clearEntities();
+		//clearEntities();
 	}
 	
 	// Removes players from temple
@@ -400,13 +397,44 @@ public class Temple {
 		p.teleport(lobbyLoc);
 		tellPlayer(p, "You joined the Temple. Have fun!");
 	}
-
-	private boolean trySetup() {
-		convertLobby();
-		convertSpawnpoints();
-		if(lobbyLoc == null || templeLoc == null)
+	
+	private boolean trySetup(){
+		boolean foundLobbyLoc = false;
+		boolean foundTempleLoc = false;
+		
+		for(Block b: getBlockSet(Material.WALL_SIGN.getId())){
+			if(foundLobbyLoc)
+				break;
+			Sign sign = (Sign) b.getState();
+			foundLobbyLoc = checkSign(sign);
+		}
+		for(Block b: getBlockSet(Material.SIGN_POST.getId())){     
+			if(foundLobbyLoc)
+				break;
+	        Sign sign = (Sign) b.getState();
+	        foundLobbyLoc = checkSign(sign);
+		}
+		for(Block b: getBlockSet(diamondBlock)){
+			if(foundTempleLoc)
+				break;
+    		Block rb = b.getRelative(0, -1, 0);
+    		if(rb.getTypeId() == ironBlock){
+    			foundTempleLoc = true;
+    		}
+		}
+		
+		return foundLobbyLoc && foundTempleLoc;
+	}
+	
+	private boolean checkSign(Sign sign) {
+		String[] Lines = sign.getLines();
+		if(!Lines[0].equals("[TC]"))
 			return false;
-		return true;
+		
+		if(Lines[1].toLowerCase().equals("lobby")){
+			return true;
+		}
+		return false;
 	}
 
 	/**
