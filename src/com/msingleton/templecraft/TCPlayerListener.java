@@ -29,12 +29,15 @@ public class TCPlayerListener  extends PlayerListener{
 	
 	public void onPlayerMove(PlayerMoveEvent event)
     {
+		if (!event.getPlayer().getWorld().equals(TempleManager.world))
+            return;
+		
 		if(!TempleManager.isEnabled || TempleManager.templeSet.isEmpty())
 			return;
 		
 		Player p = event.getPlayer();
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-		Temple temple = TCUtils.getTemple(p);
+		Temple temple = tp.currentTemple;
 		
 		if(temple == null)
 			return;
@@ -130,7 +133,8 @@ public class TCPlayerListener  extends PlayerListener{
             }
         	
         	// Set the player's class.
-    		Temple temple = TCUtils.getTemple(p);
+        	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+    		Temple temple = tp.currentTemple;
         	if(temple == null  || hasLevel(p, Line2, temple.minLevel)){
         		TempleManager.assignClass(p, Line2);
 	        	TempleManager.tellPlayer(p, "You have chosen " + Line2 + " as your class!");

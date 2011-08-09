@@ -99,10 +99,12 @@ public class TCCommands implements CommandExecutor
     	
     	if (cmd.equals("reload") && TCPermissionHandler.hasPermission(p, "templecraft.reload"))
         {
+    		TempleManager.tellPlayer(p, "Temples Reloading...");
     		for(Player tempp : TempleManager.world.getPlayers()){
     			TemplePlayer temptp = TempleManager.templePlayerMap.get(tempp);
     			if(temptp.currentTemple != null){
-    				TempleManager.tellPlayer(p, "TempleWorld is currently in use. Please wait or use \"/forceend <templename>\" to end the temples.");
+    				TempleManager.tellPlayer(p, "TempleWorld is currently in use.");
+    				p.sendMessage("Please wait or use \"/tc forceend <templename>\" to end the temples.");
     				return true;
     			}
     		}

@@ -21,7 +21,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 
 public class TCRestore {
-	private static String c = ":";	
+	//Blocks
+	private static int[] blockArray = {0,1,2,3,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,35,41,42,43,44,45,46,47,48,49,52,54,56,57,58,60,61,62,67,73,74,79,80,81,82,84,85,86,87,88,89,90,91,92};
+	private static String c = ":";
+	
 	public static void saveTemple(Location p1, Location p2, Temple temple){	
 		World world = p1.getWorld();
 		
@@ -44,9 +47,9 @@ public class TCRestore {
 	            for (int k = z1; k <= z2; k++)
 	            {
 	            	Block b = world.getBlockAt(i,j,k);
-	            	if(isDefaultBlock(b))
+	            	if(isDefaultBlock(b)){
 	            		continue;
-	            	else if(b.getTypeId() == 68 || b.getTypeId() == 63){
+	            	} else if(b.getTypeId() == 68 || b.getTypeId() == 63){
 	            		Sign sign = (Sign) b.getState();
 	            		id = b.getTypeId()+c+b.getData() + c + sign.getLine(0) + c + sign.getLine(1) + c + sign.getLine(2) + c + sign.getLine(3);
 	            	} else {
@@ -109,50 +112,59 @@ public class TCRestore {
         }
         catch (Exception e)
         {
-            System.out.println("Couldn't find backup file...");
+            System.out.println("TempleCraft file not found for this temple.");
             return;
         }
         
-        // Loads Blocks first so redstone and torches have something to sit on
+        HashMap<EntityPosition,String> blockMap = new HashMap<EntityPosition, String>();
+        HashMap<EntityPosition,String> redstoneMap = new HashMap<EntityPosition, String>();
+        HashMap<EntityPosition,String> otherMap = new HashMap<EntityPosition, String>();
         
-        for (EntityPosition ep : preciousPatch.keySet())
-        {
+        // Put blocks into seperate maps to load in a specific order to prevent glitches (e.g. blocks before torches and redstone)
+        for (EntityPosition ep : preciousPatch.keySet()){        	
+        	String[] s = preciousPatch.get(ep).split(c);
+        	
+        	boolean found = false;
+        	for(int id : blockArray){
+        		if(id == Integer.parseInt(s[0])){
+            		found = true;
+            		break;
+            	}
+        	}
+        	if(found){
+        		blockMap.put(ep,preciousPatch.get(ep));
+        	} else {
+        		otherMap.put(ep,preciousPatch.get(ep));
+        	}
+        }
+        loadPatch(temple, startLoc, blockMap);
+        loadPatch(temple, startLoc, otherMap);
+	}
+
+	private static void loadPatch(Temple temple, Location startLoc, HashMap<EntityPosition, String> patch) {
+		World world = startLoc.getWorld();
+		
+		for (EntityPosition ep : patch.keySet()){ 
         	double x = ep.getX()+startLoc.getX();
         	double y = ep.getY()+startLoc.getY();
         	double z = ep.getZ()+startLoc.getZ();
         	Location loc = new Location(world, x, y, z);
-        	String[] s = preciousPatch.get(ep).split(c);
         	Block b = world.getBlockAt(loc);
-        	if(TempleManager.blockSet.contains(Integer.parseInt(s[0]))){
-        		b.setTypeIdAndData(Integer.parseInt(s[0]), Byte.parseByte(s[1]), true);
-        		addToTempleSets(temple, b);
-        		TCUtils.expandRegion(temple, loc);
+        	
+        	String[] s = patch.get(ep).split(c);
+        	b.setTypeIdAndData(Integer.parseInt(s[0]), Byte.parseByte(s[1]), true);
+        	        	
+        	if(b.getTypeId() == 68 || b.getTypeId() == 63){
+        		if(s.length > 2){
+        			for(int i = 2; i<s.length;i++){
+        				Sign sign = (Sign) b.getState();
+        				sign.setLine((i-2), s[i]);
+        			}
+        		}
         	}
-        }
-        
-        // Loads everything else that is not a Block
-        
-        for (EntityPosition ep : preciousPatch.keySet())
-        {
-        	double x = ep.getX()+startLoc.getX();
-        	double y = ep.getY()+startLoc.getY();
-        	double z = ep.getZ()+startLoc.getZ();
-        	Location loc = new Location(TempleManager.world, x, y, z);
-        	String[] s = preciousPatch.get(ep).split(c);
-        	Block b = world.getBlockAt(loc);
-        	if(!TempleManager.blockSet.contains(Integer.parseInt(s[0]))){
-        		b.setTypeIdAndData(Integer.parseInt(s[0]), Byte.parseByte(s[1]), true);
-        		addToTempleSets(temple, b);
-        		TCUtils.expandRegion(temple, loc);
-	        	if(b.getTypeId() == 68 || b.getTypeId() == 63){
-	        		if(s.length > 2){
-	        			for(int i = 2; i<s.length;i++){
-	        				Sign sign = (Sign) b.getState();
-	        				sign.setLine((i-2), s[i]);
-	        			}
-	        		}
-	        	}
-        	}
+        	
+        	addToTempleSets(temple, b);
+        	TCUtils.expandRegion(temple, loc);
         }
 	}
 

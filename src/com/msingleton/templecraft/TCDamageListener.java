@@ -45,6 +45,18 @@ public class TCDamageListener extends EntityListener
             
     public void onEntityDamage(EntityDamageEvent event)
     {
+    	if (event.getEntity().getWorld().getName().contains("EditWorld_")){
+    		if(event.getEntity() instanceof Player){
+    			Player p = (Player)event.getEntity();
+    			event.setCancelled(true);
+    			p.setFireTicks(0);
+    			return;
+    		}
+    	}
+    	
+    	if (!event.getEntity().getWorld().equals(TempleManager.world))
+            return;
+    	
     	Temple temple = TCUtils.getTemple(event.getEntity());
     	int damage = event.getDamage();
     	
@@ -56,9 +68,6 @@ public class TCDamageListener extends EntityListener
     			return;
     		}
     	}
-    	
-    	if (!event.getEntity().getWorld().equals(TempleManager.world))
-            return;
     	
         if (event instanceof EntityDamageByEntityEvent) {
 	        EntityDamageByEntityEvent sub = (EntityDamageByEntityEvent)event;
@@ -131,6 +140,7 @@ public class TCDamageListener extends EntityListener
 		}
 	}
 
+    /*
 	private int getDamageWillBeDelt(Player p, int damage) {
     	double total = 0;
 		double max = 0;
@@ -140,13 +150,16 @@ public class TCDamageListener extends EntityListener
 		}
 		int result = (int) Math.ceil((double)damage*(1.0-(max-total)/max));
 		return result;
-	}
+	}*/
 
 	/**
      * Clears all player/monster drops on death.
      */
     public void onEntityDeath(EntityDeathEvent event)
     {        
+    	if (!event.getEntity().getWorld().equals(TempleManager.world))
+            return;
+    	
         // If player, call player death and such.
         if (event.getEntity() instanceof Player)
         {        
@@ -199,7 +212,7 @@ public class TCDamageListener extends EntityListener
      * it's running.
      */
     public void onCreatureSpawn(CreatureSpawnEvent event)
-    {       
+    {    	
     	if (!(event.getEntity() instanceof LivingEntity))
             return;
     	

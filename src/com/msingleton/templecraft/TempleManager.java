@@ -56,7 +56,6 @@ public class TempleManager
     protected static Set<Temple> templeSet         = new HashSet<Temple>();
     protected static Set<Temple> customTempleSet   = new HashSet<Temple>();
     protected static Set<Player> playerSet         = new HashSet<Player>();
-    public static Set<Integer> blockSet            = new HashSet<Integer>();
     public static Set<Material> breakable          = new HashSet<Material>();    
     
     //Flatland Configs
@@ -102,10 +101,6 @@ public class TempleManager
     	breakable.add(Material.TNT);
     	breakable.add(Material.COBBLESTONE);
     	breakable.add(Material.CLAY);
-    	//Blocks
-    	int[] blockArray = {0,1,2,3,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,29,33,35,41,42,43,44,45,46,47,48,49,52,54,56,57,58,60,61,62,67,73,74,79,80,81,82,84,85,86,87,88,89,90,91,92};
-    	for(int i : blockArray)
-    		blockSet.add(i);
 	}
 
 	/* ///////////////////////////////////////////////////////////////////// //
@@ -202,7 +197,6 @@ public class TempleManager
     	if(temple == null)
     		return;
     	
-    	temple.spectatorSet.remove(p);
 		tp.currentClass = null;
 		tp.currentTemple = null;
 		playerSet.remove(p);
@@ -217,6 +211,10 @@ public class TempleManager
 			if (temple.isRunning && playerSet.isEmpty())
 				temple.endTemple();
 		}
+		
+		if(temple.editorSet.remove(p))
+			if(temple.editorSet.isEmpty())
+				TempleManager.templeEditMap.remove(temple.templeName);
 		
 		if(temple.readySet.remove(p))
 			if (!temple.readySet.isEmpty() && temple.readySet.equals(playerSet))

@@ -584,8 +584,9 @@ public class TCUtils
     
     public static Temple getTemple(Entity entity){
     	for(Temple temple : TempleManager.templeSet)
-        	if(inRegion(temple.p1, temple.p2, entity.getLocation()))
-        		return temple;
+    		if(temple.p1 != null && temple.p2 != null)
+    			if(inRegion(temple.p1, temple.p2, entity.getLocation()))
+    				return temple;
     	return null;
     }
     
@@ -806,8 +807,11 @@ public class TCUtils
 		if(EditWorld == null)
 			return;
 		
-		TempleManager.clearWorld(EditWorld);
-		temple.loadTemple(EditWorld);
+		if(temple.editorSet.isEmpty()){
+			TempleManager.clearWorld(EditWorld);
+			temple.loadTemple(EditWorld);
+		}
+		temple.editorSet.add(p);
 		tp.currentTemple = temple;
 		if(!TempleManager.locationMap.containsKey(p))
 			TempleManager.locationMap.put(p, p.getLocation());
@@ -823,6 +827,7 @@ public class TCUtils
 			String s = c.getString("Players."+playerName+".Temples.accessTo", "");
 			if(s.equals("")){
 				c.setProperty("Players."+playerName+".Temples.accessTo", temple.templeName);
+				return true;
 			} else if(!s.contains(temple.templeName)){
 				c.setProperty("Players."+playerName+".Temples.accessTo", s + "," + temple.templeName);
 				c.save();

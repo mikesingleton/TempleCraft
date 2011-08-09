@@ -61,7 +61,7 @@ public class Temple {
     
     // Sets and Maps for storing players, their locations, and their rewards.
     protected Set<Player> playerSet            = new HashSet<Player>();
-    protected Set<Player> spectatorSet         = new HashSet<Player>();
+    protected Set<Player> editorSet         = new HashSet<Player>();
     protected Set<Player> readySet             = new HashSet<Player>();
     protected Map<Player,String> rewardMap     = new HashMap<Player,String>();
     
@@ -123,10 +123,11 @@ public class Temple {
 	
 	public void saveTemple(World w, Player p){
 		if(p1 == null || p2 == null){
-			TCRestore.saveTemple(new Location(w, 0, 0, 0), new Location(w, 0, 0, 0), this);
-			TempleManager.tellPlayer(p, "Temple Saved");
+			TempleManager.tellPlayer(p, "Region not found.");
 			return;
 		}
+		
+		TempleManager.tellPlayer(p, "Saving...");
 		
 	    int x1 = (int)p1.getX();
 	    int z1 = (int)p1.getZ();
@@ -138,11 +139,14 @@ public class Temple {
 	}
 	
 	public void loadTemple(World w){
-		clearTemple();
+		Location startLoc = getFreeLocation(w);
+		
+		if(p1 != null && p2 != null){
+			clearTemple(startLoc);
+		}
 		p1 = null;
 		p2 = null;
 		
-		Location startLoc = getFreeLocation(w);
 		TCRestore.loadTemple(startLoc, this);
 		
 		if(!isSetup){
@@ -156,11 +160,22 @@ public class Temple {
 			clearEntities();
 	}
 	
-	private void clearTemple() {
+	private void clearTemple(Location startLoc) {
 		blockSet.clear();
 		coordBlockSet.clear();
 		lobbyBlockSet.clear();
 		endBlockSet.clear();
+		
+		// Regenerate Chunks where temple will be
+		
+		int x1 = startLoc.getBlockX() + p1.getBlockX();
+		int x2 = startLoc.getBlockX() + p2.getBlockX();
+		int z1 = startLoc.getBlockZ() + p1.getBlockZ();
+		int z2 = startLoc.getBlockZ() + p2.getBlockZ();
+		
+		for (int i = x1; i <= x2; i++)
+		    for (int j = z1; j <= z2; j++)
+	            world.regenerateChunk(i, j);
 	}
 
 	private Location getFreeLocation(World w) {
@@ -295,9 +310,10 @@ public class Temple {
 	private Set<Block> getBlockSet(int id){
 	    Set<Block> result = new HashSet<Block>();
 	    
-	    for(Block b : coordBlockSet)
-	    	if(b.getTypeId() == id)
-	    		result.add(b);
+	    if(!coordBlockSet.isEmpty())
+	    	for(Block b : coordBlockSet)
+	    		if(b.getTypeId() == id)
+	    			result.add(b);
 	    
 	    return result;
 	}
@@ -338,45 +354,51 @@ public class Temple {
 	*/
 	public void playerJoin(Player p)
 	{
-	if (!TempleManager.isEnabled || !this.isEnabled)
-	{
-	    tellPlayer(p, "TempleCraft is not enabled.");
-	    return;
-	}
-	if (!isSetup)
-	{
-		tellPlayer(p, "Temple \""+templeName+"\" has not been set up yet!");
-		return;
-	}
-	if (playerSet.contains(p))
-	{
-	    tellPlayer(p, "You are already playing!");
-	    return;
-	}
-	if (TempleManager.playerSet.contains(p))
-	{
-	    tellPlayer(p, "You are already playing in a different Temple!");
-	    return;
-	}
-	if (isRunning)
-	{
-	    tellPlayer(p, "Temple in progress.");
-	    return;
-	}
-	
-	TempleManager.templePlayerMap.get(p).currentTemple = this;
-	TempleManager.playerSet.add(p);
-	playerSet.add(p);
-	
-	if (!TempleManager.locationMap.containsKey(p))
-	    TempleManager.locationMap.put(p, p.getLocation());
-	
-	if(!TCUtils.hasPlayerInventory(p.getName()))
-		TCUtils.keepPlayerInventory(p);
-	
-	convertLobby();
-	p.teleport(lobbyLoc);
-	tellPlayer(p, "You joined the Temple. Have fun!");
+		
+		if (!TempleManager.isEnabled || !this.isEnabled)
+		{
+		    tellPlayer(p, "TempleCraft is not enabled.");
+		    return;
+		}
+		if (!isSetup)
+		{
+			tellPlayer(p, "Temple \""+templeName+"\" has not been set up yet!");
+			return;
+		}
+		if (playerSet.contains(p))
+		{
+		    tellPlayer(p, "You are already playing!");
+		    return;
+		}
+		if (TempleManager.playerSet.contains(p))
+		{
+		    tellPlayer(p, "You are already playing in a different Temple!");
+		    return;
+		}
+		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+		if(tp.currentTemple != null){
+			tellPlayer(p, "Please leave the current temple before joining another.");
+		    return;
+		}
+		if (isRunning)
+		{
+		    tellPlayer(p, "Temple in progress.");
+		    return;
+		}
+		
+		tp.currentTemple = this;
+		TempleManager.playerSet.add(p);
+		playerSet.add(p);
+		
+		if (!TempleManager.locationMap.containsKey(p))
+		    TempleManager.locationMap.put(p, p.getLocation());
+		
+		if(!TCUtils.hasPlayerInventory(p.getName()))
+			TCUtils.keepPlayerInventory(p);
+		
+		convertLobby();
+		p.teleport(lobbyLoc);
+		tellPlayer(p, "You joined the Temple. Have fun!");
 	}
 
 	private boolean trySetup() {
@@ -429,37 +451,20 @@ public class Temple {
 			TempleManager.tellPlayer(p, msg);
 			msg = "Or type \"/tc leave\" and restart from the beginning!";
 			TempleManager.tellPlayer(p, msg);
-			p.teleport(lobbyLoc);
-			p.setHealth(20);
 		} else {
 			msg = "You do not have enough gold to rejoin.";
 			TempleManager.tellPlayer(p, msg);
-			TempleManager.playerLeave(p);
+			msg = "Please type \"/tc leave\" to leave the temple.";
+			TempleManager.tellPlayer(p, msg);
 		}
 		if (isRunning && playerSet.isEmpty()){
 		    endTemple();
 		}
 		
+		p.setHealth(20);
+		p.teleport(lobbyLoc);
 		p.setFireTicks(0);
 		tp.saveData();
-	}
-	
-	/**
-	* Lets a player spectate the current Temple session.
-	*/
-	public void playerSpectate(Player p)
-	{
-	if (!playerSet.contains(p))
-	{
-		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-		spectatorSet.add(p);
-	    p.teleport(templeLoc);
-	    tellPlayer(p, "Enjoy the show!");
-	}
-	else
-	{
-	    tellPlayer(p, "Can't spectate when in the Temple!");
-	}
 	}
 	
 	/**
@@ -645,18 +650,15 @@ public class Temple {
 	*/
 	public void clearEntities()
 	{
-		if(p1 == null || p2 == null)
+		if(p1 == null || p2 == null || world == null)
 			return;
-		
-	Chunk c1 = world.getChunkAt(p1);
-	Chunk c2 = world.getChunkAt(p2);
 	
 	/* Yes, ugly nesting, but it's necessary. This bit
 	 * removes all the entities in the Temple region without
 	 * bloatfully iterating through all entities in the
 	 * world. Much faster on large servers especially. */ 
-	for (int i = c1.getX(); i <= c2.getX(); i++)
-	    for (int j = c1.getZ(); j <= c2.getZ(); j++)
+	for (int i = p1.getBlockX(); i <= p2.getBlockX(); i++)
+	    for (int j = p1.getBlockZ(); j <= p2.getBlockZ(); j++)
 	        for (Entity e : world.getChunkAt(i,j).getEntities())
 	            if ((e instanceof Item) || (e instanceof Slime))
 	                e.remove();
@@ -707,11 +709,7 @@ public class Temple {
 	*/
 	public void tellAll(String msg)
 	{
-		Set<Player> tempSet = new HashSet<Player>();
-		tempSet.addAll(playerSet);
-		tempSet.addAll(spectatorSet);
-		
-		for(Player p: tempSet)
+		for(Player p: playerSet)
 			tellPlayer((Player)p, msg);	    
 	}
 }

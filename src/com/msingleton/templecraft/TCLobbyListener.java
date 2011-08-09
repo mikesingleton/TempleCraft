@@ -123,7 +123,7 @@ public class TCLobbyListener extends PlayerListener
     	                temple.tellPlayer(p, "You must first pick a class!");
     	            }
         		} else {
-        			TempleManager.tellPlayer(p, "You don't have enough gold to rejoin.");
+        			TempleManager.tellPlayer(p, "You do not have enough gold to rejoin.");
         		}
         	}
             return;
