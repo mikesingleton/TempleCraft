@@ -22,7 +22,7 @@ import org.bukkit.entity.Slime;
 
 public class TCRestore {
 	private static String c = ":";	
-	public static void saveRegion(Location p1, Location p2, String fileName){	
+	public static void saveTemple(Location p1, Location p2, Temple temple){	
 		World world = p1.getWorld();
 		
 	    int x1 = (int)p1.getX();
@@ -36,8 +36,8 @@ public class TCRestore {
 	    HashMap<EntityPosition, String> preciousPatch = new HashMap<EntityPosition, String>();
 	    Location lo;
 	    String id;
-	    // Save top to bottom so it loads bottom to top
-	    for (int j = y2; j <= y1; j--)
+	    // Save top to bottom so it loads bottom to top	    
+	    for (int j = y2; j >= y1; j--)
         {
 	    	for (int i = x1; i <= x2; i++)
 	    	{
@@ -58,18 +58,12 @@ public class TCRestore {
 	        }
 	    }
 	    try
-	    {
-	    	StringBuilder folder = new StringBuilder();
-	    	if(fileName.contains("/"))
-	    		for(int i = 0; i<fileName.split("/").length-1;i++)
-	    			folder.append(fileName.split("/")[i]);
-	    	
-	    	File file = new File("plugins/TempleCraft/"+folder);
-        	if(!file.exists())
-        		file.mkdir();
-        	else
-        		file.createNewFile();
-	        FileOutputStream fos = new FileOutputStream("plugins/TempleCraft/"+fileName+TempleCraft.fileExtention);
+	    {	
+	    	File folder = new File("plugins/TempleCraft/SavedTemples/");
+        	if(!folder.exists())
+        		folder.mkdir();
+        	File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName + TempleCraft.fileExtention);
+	        FileOutputStream fos = new FileOutputStream(file);
 	        ObjectOutputStream oos = new ObjectOutputStream(fos);
 	        oos.writeObject(preciousPatch);
 	        oos.close();
@@ -163,10 +157,12 @@ public class TCRestore {
 	}
 
 	private static void addToTempleSets(Temple temple, Block b) {
-		temple.blockSet.add(b);
-		for(int id : Temple.coordBlocks)
-			if(b.getTypeId() == id)
-				temple.coordBlockSet.add(b);
+		if(b.getWorld().equals(TempleManager.world)){
+			temple.blockSet.add(b);
+			for(int id : Temple.coordBlocks)
+				if(b.getTypeId() == id)
+					temple.coordBlockSet.add(b);
+		}
 	}
 
 	public static void clearEntities(Location p1, Location p2)

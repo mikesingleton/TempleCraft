@@ -31,7 +31,7 @@ public class TempleCraft extends JavaPlugin
 {
     /* Array of commands used to determine if a command belongs to TempleCraft
      * or Mean Admins. */
-    public static final String[] COMMANDS = {"join", "j", "leave", "l", "nullclass", "playerlist", "plist", "templelist", "tlist",
+    public static final String[] COMMANDS = {"info", "join", "j", "leave", "l", "nullclass", "playerlist", "plist", "templelist", "tlist",
     										"spectate", "spec", "ready", "notready", "enable", "checkupdates", "forcestart", "forceend",
                                       		"new", "edit", "save", "reload"};
     private Logger log;

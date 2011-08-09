@@ -121,9 +121,9 @@ public class Temple {
 
 	// ///////////////////////////////////////////////////////////////////// */
 	
-	public void saveTemple(World w, Player p, String fileName){
+	public void saveTemple(World w, Player p){
 		if(p1 == null || p2 == null){
-			TCRestore.saveRegion(new Location(w, 0, 0, 0), new Location(w, 0, 0, 0), "SavedTemples/"+fileName);
+			TCRestore.saveTemple(new Location(w, 0, 0, 0), new Location(w, 0, 0, 0), this);
 			TempleManager.tellPlayer(p, "Temple Saved");
 			return;
 		}
@@ -133,7 +133,7 @@ public class Temple {
 	    int x2 = (int)p2.getX();
 	    int z2 = (int)p2.getZ();
 		
-		TCRestore.saveRegion(new Location(w, x1, 0, z1), new Location(w, x2, 128, z2), "SavedTemples/"+fileName);
+		TCRestore.saveTemple(new Location(w, x1, 0, z1), new Location(w, x2, 128, z2), this);
 		TempleManager.tellPlayer(p, "Temple Saved");
 	}
 	
@@ -157,13 +157,10 @@ public class Temple {
 	}
 	
 	private void clearTemple() {
+		blockSet.clear();
+		coordBlockSet.clear();
 		lobbyBlockSet.clear();
 		endBlockSet.clear();
-		if(p1 == null || p2 == null)
-			return;
-		for(int i = p1.getBlockX(); i <= p2.getBlockX(); i++)
-			for(int j = p1.getBlockZ(); j <= p2.getBlockZ(); j++)
-				TempleManager.world.regenerateChunk(i, j);
 	}
 
 	private Location getFreeLocation(World w) {
@@ -296,9 +293,6 @@ public class Temple {
 	}
 
 	private Set<Block> getBlockSet(int id){
-		if(p1 == null || p2 == null)
-			return new HashSet<Block>();
-	    
 	    Set<Block> result = new HashSet<Block>();
 	    
 	    for(Block b : coordBlockSet)
@@ -651,6 +645,9 @@ public class Temple {
 	*/
 	public void clearEntities()
 	{
+		if(p1 == null || p2 == null)
+			return;
+		
 	Chunk c1 = world.getChunkAt(p1);
 	Chunk c2 = world.getChunkAt(p2);
 	

@@ -89,7 +89,7 @@ public class TCCommands implements CommandExecutor
     		} else {
     			if(TCPermissionHandler.hasPermission(p, "templecraft.savetemple")){
     				if(p.getWorld().getName().contains("EditWorld_")){
-    					temple.saveTemple(p.getWorld(), p, temple.templeName);
+    					temple.saveTemple(p.getWorld(), p);
     				}
     			}
     		}

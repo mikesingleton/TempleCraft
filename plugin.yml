@@ -26,6 +26,7 @@ permissions:
     templecraft.editbasics:
         description: Gives access to basic edit commands
         children:
+            templecraft.info: true
             templecraft.newtemple: true
             templecraft.edittemple: true
             templecraft.savetemple: true

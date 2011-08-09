@@ -335,8 +335,6 @@ public class TCUtils
     	} else {
     		result = nextAvailableEditWorld(p);
     		TempleManager.templeEditMap.put(temple.templeName, result);
-    		TempleManager.clearWorld(result);
-    		temple.loadTemple(result);
     	}
     	
     	return result;
@@ -522,7 +520,7 @@ public class TCUtils
      */
     public static void expandRegion(Temple temple, Location loc)
     {    	
-    	if(temple.p1 == null){
+    	if(temple.p1 == null || temple.p2 == null){
         	temple.p1 = new Location(loc.getWorld(), loc.getX(), 0, loc.getZ());
         	temple.p2 = new Location(loc.getWorld(), loc.getX(), 128, loc.getZ());
         }
@@ -808,6 +806,8 @@ public class TCUtils
 		if(EditWorld == null)
 			return;
 		
+		TempleManager.clearWorld(EditWorld);
+		temple.loadTemple(EditWorld);
 		tp.currentTemple = temple;
 		if(!TempleManager.locationMap.containsKey(p))
 			TempleManager.locationMap.put(p, p.getLocation());
