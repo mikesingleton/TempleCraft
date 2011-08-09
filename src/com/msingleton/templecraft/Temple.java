@@ -89,6 +89,8 @@ public class Temple {
     // Entities, blocks and items on TempleCraft floor.
     protected Map<Integer,Integer> mobGoldMap = new HashMap<Integer,Integer>();
     protected Set<LivingEntity> monsterSet = new HashSet<LivingEntity>();
+    protected Set<Block> tempBlockSet          = new HashSet<Block>();
+    
     protected Set<Block> blockSet          = new HashSet<Block>();
     protected Set<Block> endBlockSet       = new HashSet<Block>();
     public Set<Block> lobbyBlockSet        = new HashSet<Block>();
@@ -96,6 +98,7 @@ public class Temple {
     public static int diamondBlock = 57;
     public static int ironBlock = 42;
     public static int goldBlock = 41;
+    public static int[] coordBlocks = {mobSpawner, diamondBlock, ironBlock, goldBlock};
     
     public static int JoinCost = 500;
     
@@ -139,7 +142,10 @@ public class Temple {
 		p2 = null;
 		
 		Location startLoc = getFreeLocation(w);
-		TCRestore.loadRegion(startLoc, "SavedTemples/"+templeName);
+		if(blockSet.isEmpty() && w.equals(TempleManager.world))
+			blockSet = TCRestore.loadRegion(startLoc, "SavedTemples/"+templeName);
+		else
+			TCRestore.loadRegion(startLoc, "SavedTemples/"+templeName);
 		
 		if(!isSetup){
 			if(trySetup()){
@@ -274,13 +280,13 @@ public class Temple {
 	
 	private void convertSpawnpoints() {
 		for(Block b: getBlockSet(mobSpawner)){
-    		activeSpawnpoints.add(b.getLocation().add(.5, .5, .5));
+    		activeSpawnpoints.add(b.getLocation());
     		b.setTypeId(0);
 		}
 	    for(Block b: getBlockSet(diamondBlock)){
     		Block rb = b.getRelative(0, -1, 0);
     		if(rb.getTypeId() == ironBlock){
-    			templeLoc = rb.getLocation().add(.5, .5, .5);
+    			templeLoc = b.getLocation();
     			b.setTypeId(0);
     			rb.setTypeId(0);
     		} else if(rb.getTypeId() == goldBlock){
@@ -294,21 +300,12 @@ public class Temple {
 	private Set<Block> getBlockSet(int id){
 		if(p1 == null || p2 == null)
 			return new HashSet<Block>();
-			
-		int x1 = (int)p1.getX();
-	    int y1 = (int)p1.getY();
-	    int z1 = (int)p1.getZ();
-	    int x2 = (int)p2.getX();
-	    int y2 = (int)p2.getY();
-	    int z2 = (int)p2.getZ();
 	    
 	    Set<Block> result = new HashSet<Block>();
 	    
-	    for (int j = y1; j <= y2; j++)
-	    	for (int i = x1; i <= x2; i++)
-	            for (int k = z1; k <= z2; k++)
-	            	if(TempleManager.world.getBlockAt(i,j,k).getTypeId() == id)
-	            		result.add(TempleManager.world.getBlockAt(i,j,k));
+	    for(Block b : blockSet)
+	    	if(b.getTypeId() == id)
+	    		result.add(b);
 	    
 	    return result;
 	}
@@ -434,23 +431,28 @@ public class Temple {
 		tp.roundDeaths++;
 		tp.currentClass = null;
 		
+		String msg;
 		if(balance.hasEnough(JoinCost)){
-			String msg = "To continue playing will cost you "+ChatColor.GOLD+JoinCost+" gold.";
+			msg = "To continue playing will cost you "+ChatColor.GOLD+JoinCost+" gold.";
 			TempleManager.tellPlayer(p, msg);
 			msg = "Or type \"/tc leave\" and restart from the beginning!";
 			TempleManager.tellPlayer(p, msg);
+			p.teleport(lobbyLoc);
 		} else {
-			String msg = "You do not have enough gold to rejoin.";
+			msg = "You do not have enough gold to rejoin.";
 			TempleManager.tellPlayer(p, msg);
-			msg = "Please type \"/tc leave\" to leave the temple.";
-			TempleManager.tellPlayer(p, msg);
+			if(TempleManager.locationMap.containsKey(p)){
+				p.teleport(TempleManager.locationMap.get(p));
+			} else {
+				msg = "We have lost track of your origin. Please request assistance.";
+				TempleManager.tellPlayer(p, msg);
+				p.teleport(lobbyLoc);
+			}
 		}
 		if (isRunning && playerSet.isEmpty()){
 		    endTemple();
 		}
 		
-		p.teleport(lobbyLoc);
-		p.setHealth(20);
 		p.setFireTicks(0);
 		tp.saveData();
 	}
@@ -642,13 +644,13 @@ public class Temple {
 	/**
 	* Removes all the blocks on the Temple floor.
 	*/
-	public void clearBlocks()
+	public void clearTempBlocks()
 	{
 	// Remove all blocks, then clear the Set.
-	for (Block b : blockSet)
+	for (Block b : tempBlockSet)
 	    b.setType(Material.AIR);
 	
-	blockSet.clear();
+	tempBlockSet.clear();
 	}
 	
 	/**

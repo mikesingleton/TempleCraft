@@ -47,7 +47,7 @@ public class TCBlockListener extends BlockListener
         if (!temple.isSetup || !temple.isRunning && event.getPlayer().isOp())
             return;
         
-        if (temple.blockSet.remove(b) || TempleManager.breakable.contains(b.getType()))
+        if (temple.tempBlockSet.remove(b) || TempleManager.breakable.contains(b.getType()))
             return;
         
         if (TCUtils.inRegion(temple.p1, temple.p2, b.getLocation()))
@@ -80,12 +80,12 @@ public class TCBlockListener extends BlockListener
         
         if (temple.isRunning && TempleManager.playerSet.contains(event.getPlayer()))
         {
-            temple.blockSet.add(b);
+            temple.tempBlockSet.add(b);
             Material type = b.getType();
             
             // Make sure to add the top parts of doors.
             if (type == Material.WOODEN_DOOR || type == Material.IRON_DOOR_BLOCK)
-                temple.blockSet.add(b.getRelative(0,1,0));
+                temple.tempBlockSet.add(b.getRelative(0,1,0));
             
             return;
         }

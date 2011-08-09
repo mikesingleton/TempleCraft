@@ -48,9 +48,6 @@ public class TCDamageListener extends EntityListener
     	Temple temple = TCUtils.getTemple(event.getEntity());
     	int damage = event.getDamage();
     	
-    	if (!event.getEntity().getWorld().equals(TempleManager.world))
-            return;
-    	
     	if (event.getEntity() instanceof Player){
     		Player p = (Player)event.getEntity();
     		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
@@ -59,7 +56,10 @@ public class TCDamageListener extends EntityListener
     			return;
     		}
     	}
-    		
+    	
+    	if (!event.getEntity().getWorld().equals(TempleManager.world))
+            return;
+    	
         if (event instanceof EntityDamageByEntityEvent) {
 	        EntityDamageByEntityEvent sub = (EntityDamageByEntityEvent)event;
 	        
@@ -72,8 +72,10 @@ public class TCDamageListener extends EntityListener
 	        	if (entity instanceof Player)
 	        		buffExp(temple, ((Player)entity), entity2, damage);
 	        	
-	        	temple.lastDamager.remove(id);
-        		temple.lastDamager.put(id, entity);
+	        	if(entity2 != null && entity != null){
+	        		temple.lastDamager.remove(id);
+        			temple.lastDamager.put(id, entity);
+	        	}
 	        }
 	        /*
 	        if (!(event.getEntity() instanceof Player))
@@ -203,11 +205,9 @@ public class TCDamageListener extends EntityListener
     	
     	Location loc = event.getLocation();
     	
-    	for(World world : TempleManager.templeEditMap.values()){
-    		if(loc.getWorld().equals(world)){
-    			event.setCancelled(true);
-    			return;
-    		}
+    	if(loc.getWorld().getName().contains("EditWorld_")){
+    		event.setCancelled(true);
+    		return;
     	}
     	
     	LivingEntity e = (LivingEntity) event.getEntity();

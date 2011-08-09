@@ -68,7 +68,7 @@ public class TCLobbyListener extends PlayerListener
         Block liquid = event.getBlockClicked().getFace(event.getBlockFace());
         for(Temple temp : TempleManager.templeSet)
         	if(temp.playerSet.contains(event.getPlayer()))
-        		temp.blockSet.add(liquid);
+        		temp.tempBlockSet.add(liquid);
     }
     
     /**

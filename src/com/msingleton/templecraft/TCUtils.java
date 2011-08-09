@@ -391,7 +391,7 @@ public class TCUtils
             c.setProperty("classes.Knight.enabled", "298,299,300,301,306,307,308,309,314,315,316,317,"+"268,272,267,283,276,"+"320");
             c.setProperty("classes.Archer.items",   "wood_sword");
             c.setProperty("classes.Archer.armor",   "");
-            c.setProperty("classes.Archer.enabled", "298,299,300,301,314,315,316,317,"+"268,272,267,"+"262");
+            c.setProperty("classes.Archer.enabled", "298,299,300,301,314,315,316,317,"+"268,272,267,"+"261,262");
             c.setProperty("classes.Tank.items",     "wood_sword");
             c.setProperty("classes.Tank.armor",     "");
             c.setProperty("classes.Tank.enabled",   "298,299,300,301,306,307,308,309,314,315,316,317,310,311,312,313,"+"268,272,267,283"+"320");
@@ -777,15 +777,16 @@ public class TCUtils
 			}
 		}
 		
+    	temple = new Temple(templeName);
+    	tp.addOwnerOf(templeName);
+    	tp.addAccessTo(templeName);
+		
 		World EditWorld = TCUtils.getEditWorld(p, temple);
 		TempleManager.clearWorld(EditWorld);
 		
 		if(EditWorld == null)
 			return;
 		
-    	temple = new Temple(templeName);
-    	tp.addOwnerOf(templeName);
-    	tp.addAccessTo(templeName);
     	editTemple(p, temple);
 	}
 

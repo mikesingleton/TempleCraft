@@ -53,12 +53,12 @@ public class TCMonsterListener extends EntityListener
             // Doors are wonky, so don't store them. Just smile and wave, and remove from set.
             if (b.getType() == Material.WOODEN_DOOR || b.getType() == Material.IRON_DOOR_BLOCK || b.getType() == Material.CAKE_BLOCK)
             {
-                temple.blockSet.remove(b);
+                temple.tempBlockSet.remove(b);
                 continue;
             }
             
-            // If a block is in the blockSet, make sure it drops "naturally" so Oddjob doesn't cry.
-            if (temple.blockSet.remove(b))
+            // If a block is in the tempblockSet, make sure it drops "naturally".
+            if (temple.tempBlockSet.remove(b))
             {
                 temple.world.dropItemNaturally(b.getLocation(), new ItemStack(b.getTypeId(), 1));
                 continue;

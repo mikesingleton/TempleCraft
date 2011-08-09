@@ -66,6 +66,8 @@ public class TCRestore {
 	    	File file = new File("plugins/TempleCraft/"+folder);
         	if(!file.exists())
         		file.mkdir();
+        	else
+        		file.createNewFile();
 	        FileOutputStream fos = new FileOutputStream("plugins/TempleCraft/"+fileName+TempleCraft.fileExtention);
 	        ObjectOutputStream oos = new ObjectOutputStream(fos);
 	        oos.writeObject(preciousPatch);
@@ -96,8 +98,9 @@ public class TCRestore {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void loadRegion(Location startLoc, String fileName){
+	public static Set<Block> loadRegion(Location startLoc, String fileName){
 		World world = startLoc.getWorld();
+		Set<Block> loadedBlocks = new HashSet<Block>();
 		
 		HashMap<EntityPosition,String> preciousPatch;
         try
@@ -113,7 +116,7 @@ public class TCRestore {
         catch (Exception e)
         {
             System.out.println("Couldn't find backup file...");
-            return;
+            return loadedBlocks;
         }
         
         for (EntityPosition ep : preciousPatch.keySet())
@@ -126,8 +129,9 @@ public class TCRestore {
         	Block b = world.getBlockAt(loc);
         	if(TempleManager.blockSet.contains(Integer.parseInt(s[0]))){
         		b.setTypeIdAndData(Integer.parseInt(s[0]), Byte.parseByte(s[1]), true);
-        		checkP2(fileName, b);
-        	}
+        		loadedBlocks.add(b);
+        		checkRegion(fileName, b);
+        	}	
         }
         
         for (EntityPosition ep : preciousPatch.keySet())
@@ -140,7 +144,8 @@ public class TCRestore {
         	Block b = world.getBlockAt(loc);
         	if(!TempleManager.blockSet.contains(Integer.parseInt(s[0]))){
         		b.setTypeIdAndData(Integer.parseInt(s[0]), Byte.parseByte(s[1]), true);
-        		checkP2(fileName, b);
+        		loadedBlocks.add(b);
+        		checkRegion(fileName, b);
 	        	if(b.getTypeId() == 68 || b.getTypeId() == 63){
 	        		if(s.length > 2){
 	        			for(int i = 2; i<s.length;i++){
@@ -151,9 +156,11 @@ public class TCRestore {
 	        	}
         	}
         }
+        
+        return loadedBlocks;
 	}
 	
-	private static void checkP2(String s, Block b) {
+	private static void checkRegion(String s, Block b) {
 		//Fix s to templename
 		if(!s.contains("SavedTemples/"))
 			return;
