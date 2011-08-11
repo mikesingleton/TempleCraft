@@ -38,7 +38,6 @@ public class TemplePlayer{
 		currentClass    = null;
     	resetRoundStats();
 		loadAccount();
-		
 	}
 
 	private void loadAccount() {	
@@ -200,8 +199,8 @@ public class TemplePlayer{
 	}
 
 	private void reorganizeMaps() {
-		String items = classItemMap.remove(currentClass).toString().toLowerCase();
-    	String armor = classArmorMap.remove(currentClass).toString().toLowerCase();
+		String items = classItemMap.get(currentClass).toString().toLowerCase();
+    	String armor = classArmorMap.get(currentClass).toString().toLowerCase();
     	String allItems = items + "," + armor;
     	
     	StringBuilder s = new StringBuilder();

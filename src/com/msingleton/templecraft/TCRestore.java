@@ -84,11 +84,13 @@ public class TCRestore {
 	    	File folder = new File("plugins/TempleCraft/SavedTemples/");
         	if(!folder.exists())
         		folder.mkdir();
-        	File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName + TempleCraft.fileExtention);
-	        FileOutputStream fos = new FileOutputStream(file);
+        	File tmpfile = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName + ".tmp");
+	        FileOutputStream fos = new FileOutputStream(tmpfile);
 	        ObjectOutputStream oos = new ObjectOutputStream(fos);
 	        oos.writeObject(preciousPatch);
 	        oos.close();
+	        File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName + TempleCraft.fileExtention);
+	        tmpfile.renameTo(file);
 	    }
 	    catch (Exception e)
 	    {
@@ -225,7 +227,7 @@ public class TCRestore {
 	private static void addToTempleSets(Temple temple, Block b) {
 		if(b.getWorld().equals(TempleManager.world)){
 			for(int id : Temple.coordBlocks)
-				if(b.getTypeId() == id)
+				if(b.getTypeId() == id && b.getLocation().getBlockY() > 0)
 					temple.coordBlockSet.add(b);
 		}
 	}
