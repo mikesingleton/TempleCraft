@@ -6,6 +6,9 @@ import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -23,11 +26,11 @@ public class TCBlockListener extends BlockListener
 {    
     public TCBlockListener(TempleCraft instance)
     {
-    }
-
+    }    
+    
     /**
      * Prevents blocks from breaking if block protection is on.
-     */
+     */    
     public void onBlockBreak(BlockBreakEvent event)
     {	
     	Player p = event.getPlayer();
@@ -44,14 +47,23 @@ public class TCBlockListener extends BlockListener
     		return;
     	}
     	
-        if (!temple.isSetup || !temple.isRunning && event.getPlayer().isOp())
-            return;
+    	boolean cancel = true;
+    	
+        if ((!temple.isSetup || !temple.isRunning) && !event.getPlayer().isOp())
+            cancel = false;
         
-        if (temple.tempBlockSet.remove(b) || TempleManager.breakable.contains(b.getType()))
-            return;
+        if (TempleManager.breakable.contains(b.getTypeId()))
+            cancel = false;
         
-        if (TCUtils.inRegion(temple.p1, temple.p2, b.getLocation()))
-            event.setCancelled(true);
+        if (temple.tempBlockSet.remove(b))
+        	return;
+        
+        if(TempleManager.dropBlocks && !cancel)
+        	return;
+        	
+    	if(!cancel)
+    		b.setTypeId(0);
+    	event.setCancelled(true);
     }
     
     /**

@@ -462,7 +462,7 @@ public class TCUtils
     /**
      * Grabs a string from the config-file.
      */
-	private static String getString(String path, String def) {
+	public static String getString(String path, String def) {
 		Configuration c = TempleManager.config;
         c.load();
         
@@ -497,6 +497,7 @@ public class TCUtils
     /**
      * Checks if the Location object is within the arena region.
      */
+    /*
     public static boolean inRegion(Location p1, Location p2, Location loc)
     {
         if (!loc.getWorld().getName().equals(TempleManager.world.getName()))
@@ -513,7 +514,7 @@ public class TCUtils
             return false;
             
         return true;
-    }
+    }*/
     
     /**
      * Expands the temple region outward if necessary
@@ -584,9 +585,8 @@ public class TCUtils
     
     public static Temple getTemple(Entity entity){
     	for(Temple temple : TempleManager.templeSet)
-    		if(temple.p1 != null && temple.p2 != null)
-    			if(inRegion(temple.p1, temple.p2, entity.getLocation()))
-    				return temple;
+    		if(temple.monsterSet.contains(entity))
+   				return temple;
     	return null;
     }
     
@@ -596,6 +596,13 @@ public class TCUtils
         		return temple;
     	return null;
     } 
+    
+    public static Temple getTempleByWorld(World w) {
+		for(Temple temple : TempleManager.templeSet)
+			if(TempleManager.templeEditMap.get(temple.templeName).equals(w))
+				return temple;
+		return null;
+	}
     
     public static Player getPlayerByName(String playerName){
 		for(Player p : TempleManager.server.getOnlinePlayers())

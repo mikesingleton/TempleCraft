@@ -33,15 +33,26 @@ public class TCMonsterListener extends EntityListener
     {
     	Temple temple = TCUtils.getTemple(event.getEntity());
     	
-        /* This could be done by simply cancelling the event, but that
-         * also cancels the explosion animation. This is a workaround. */
         if (temple == null)
             return;
         
         // Only apply to creepers
-        if(!(event.getEntity() instanceof LivingEntity))
-        	return;
+        if(!(event.getEntity() instanceof LivingEntity)){
+        	if(TempleManager.dropBlocks)
+        		return;
+        	
+        	// TODO: Remove torches or levers attached to blocks exploding
+        	// for(Block b : event.blockList()){
+        	// }
+        	
+        	// Remove blocks without drops
+        	for(Block b : event.blockList())
+        		b.setTypeId(0);
+        	event.setYield(0);
+        }
         
+        /* This could be done by simply cancelling the event, but that
+         * also cancels the explosion animation. This is a workaround. */
         // Don't drop any blocks from the explosion.
         event.setYield(0);
         

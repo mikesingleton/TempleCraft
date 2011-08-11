@@ -100,7 +100,7 @@ public class Temple {
     public static int goldBlock = 41;
     public static int[] coordBlocks = {mobSpawner, diamondBlock, ironBlock, goldBlock, 63, 68};
     
-    public static int JoinCost = 500;
+    public static int rejoinCost;
     
 	public Temple(){
 	}
@@ -109,6 +109,7 @@ public class Temple {
 		templeName = name;
 		world      = TempleManager.world;
 		minLevel   = 0;
+		rejoinCost   = TempleManager.rejoinCost;
 		isRunning  = false;
 		
 		TempleManager.templeSet.add(this);
@@ -141,10 +142,11 @@ public class Temple {
 		Location startLoc = getFreeLocation(w);
 		
 		if(p1 != null && p2 != null){
-			//clearFoundation(startLoc);
-			//clearEntities();
+			clearFoundation(startLoc);
+			//clearEntities(startLoc);
 		}
-		clearTemple();
+		if(w.equals(TempleManager.world))
+			clearTemple();
 		
 		TCRestore.loadTemple(startLoc, this);
 		
@@ -167,12 +169,19 @@ public class Temple {
 		
 		int x1 = startLoc.getBlockX() + p1.getBlockX();
 		int x2 = startLoc.getBlockX() + p2.getBlockX();
+		int y1 = startLoc.getBlockY() + p1.getBlockY();
+		int y2 = startLoc.getBlockY() + p2.getBlockY();
 		int z1 = startLoc.getBlockZ() + p1.getBlockZ();
 		int z2 = startLoc.getBlockZ() + p2.getBlockZ();
 		
 		for (int i = x1; i <= x2; i++)
-		    for (int j = z1; j <= z2; j++)
-	            world.regenerateChunk(i, j);
+		    for (int j = y1; j <= y2; j++)
+		    	for(int k = z1; k <= z2; k++){
+		    		Block b = world.getBlockAt(i, j, k);
+		    		int id = TCRestore.getDefaultBlock(j);
+		    		if(b.getTypeId() != id)
+		    			b.setTypeId(id);
+		    	}
 	}
 
 	private Location getFreeLocation(World w) {
@@ -256,7 +265,7 @@ public class Temple {
     	int y = loc.getBlockY();
     	int z = loc.getBlockZ();
 		for (String s : TempleManager.classes){
-            TempleManager.world.getBlockAt(x, y, z).setTypeIdAndData(68, b.getData(), false);
+            TempleManager.world.getBlockAt(x, y, z).setTypeIdAndData(b.getTypeId(), b.getData(), false);
             Sign classSign = (Sign) TempleManager.world.getBlockAt(x, y, z).getState();
            	classSign.setLine(0, "");
             classSign.setLine(1, s);
@@ -293,7 +302,7 @@ public class Temple {
 	    for(Block b: getBlockSet(diamondBlock)){
     		Block rb = b.getRelative(0, -1, 0);
     		if(rb.getTypeId() == ironBlock){
-    			templeLoc = b.getLocation();
+    			templeLoc = rb.getLocation();
     			b.setTypeId(0);
     			rb.setTypeId(0);
     		} else if(rb.getTypeId() == goldBlock){
@@ -474,11 +483,16 @@ public class Temple {
 		tp.currentClass = null;
 		
 		String msg;
-		if(balance.hasEnough(JoinCost)){
-			msg = "To continue playing will cost you "+ChatColor.GOLD+JoinCost+" gold.";
-			TempleManager.tellPlayer(p, msg);
-			msg = "Or type \"/tc leave\" and restart from the beginning!";
-			TempleManager.tellPlayer(p, msg);
+		if(balance.hasEnough(rejoinCost)){
+			if(rejoinCost > 0){
+				msg = "To continue playing will cost you "+ChatColor.GOLD+rejoinCost+" gold.";
+				TempleManager.tellPlayer(p, msg);
+				msg = "Or type \"/tc leave\" and restart from the beginning!";
+				TempleManager.tellPlayer(p, msg);
+			} else {
+				//msg = "Rejoin your friends! :O";
+				//TempleManager.tellPlayer(p, msg);
+			}
 		} else {
 			msg = "You do not have enough gold to rejoin.";
 			TempleManager.tellPlayer(p, msg);
@@ -676,20 +690,26 @@ public class Temple {
 	/**
 	* Removes all items and slimes in the Temple region.
 	*/
-	public void clearEntities()
+	public void clearEntities(Location startLoc)
 	{
 		if(p1 == null || p2 == null || world == null)
 			return;
 	
+		int x1 = startLoc.getBlockX() + p1.getBlockX();
+		int x2 = startLoc.getBlockX() + p2.getBlockX();
+		int z1 = startLoc.getBlockZ() + p1.getBlockZ();
+		int z2 = startLoc.getBlockZ() + p2.getBlockZ();
+		
 	/* Yes, ugly nesting, but it's necessary. This bit
 	 * removes all the entities in the Temple region without
 	 * bloatfully iterating through all entities in the
 	 * world. Much faster on large servers especially. */ 
-	for (int i = p1.getBlockX(); i <= p2.getBlockX(); i++)
-	    for (int j = p1.getBlockZ(); j <= p2.getBlockZ(); j++)
-	        for (Entity e : world.getChunkAt(i,j).getEntities())
-	            if ((e instanceof Item) || (e instanceof Slime))
-	                e.remove();
+	for (int i = x1; i <= x2; i++)
+	    for (int j = z1; j <= z2; j++)
+	    	if(world.getChunkAt(i,j) != null)
+	    		for (Entity e : world.getChunkAt(i,j).getEntities())
+	        		if ((e instanceof Item) || (e instanceof Slime))
+	        			e.remove();
 	}
 	
 	/* ///////////////////////////////////////////////////////////////////// //

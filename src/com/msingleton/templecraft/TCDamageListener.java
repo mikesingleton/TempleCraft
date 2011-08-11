@@ -78,10 +78,8 @@ public class TCDamageListener extends EntityListener
 	        int id = entity2.getEntityId();
 	        
 	        if(entity2 instanceof LivingEntity && ((LivingEntity)entity2).getHealth() > 0){
-	        	if (entity instanceof Player)
+	        	if (entity instanceof Player){
 	        		buffExp(temple, ((Player)entity), entity2, damage);
-	        	
-	        	if(entity2 != null && entity != null){
 	        		temple.lastDamager.remove(id);
         			temple.lastDamager.put(id, entity);
 	        	}
@@ -228,12 +226,11 @@ public class TCDamageListener extends EntityListener
     		boolean result = true;
 	    	for(Temple temple : TempleManager.templeSet)
 	    		if(temple.isRunning)
-					if(TCUtils.inRegion(temple.p1, temple.p2, loc))
-						for(Location sploc : temple.getSpawnpoints())
-							if(TCUtils.distance(loc, sploc) < 2){
-	    						temple.monsterSet.add(e);
-	    						result = false;
-							}
+					for(Location sploc : temple.getSpawnpoints())
+						if(TCUtils.distance(loc, sploc) < 2){
+    						temple.monsterSet.add(e);
+    						result = false;
+						}
 	    	event.setCancelled(result);
     	}
     }

@@ -83,7 +83,6 @@ public class TempleCraft extends JavaPlugin
         pm.registerEvent(Event.Type.PLAYER_KICK,      discListener,     Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_JOIN,      discListener,     Priority.Normal,  this);
         pm.registerEvent(Event.Type.BLOCK_BREAK,      blockListener,    Priority.Normal,  this);
-        pm.registerEvent(Event.Type.BLOCK_DAMAGE,     blockListener,    Priority.Normal,  this);
         pm.registerEvent(Event.Type.BLOCK_PLACE,      blockListener,    Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_DAMAGE,    damageListener,   Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_DEATH,     damageListener,   Priority.Normal,  this);
@@ -91,8 +90,8 @@ public class TempleCraft extends JavaPlugin
         pm.registerEvent(Event.Type.ENTITY_EXPLODE,   monsterListener,  Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_COMBUST,   monsterListener,  Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_TARGET,    monsterListener,  Priority.Normal,  this);
-        pm.registerEvent(Event.Type.PLUGIN_ENABLE,    serverListener, Priority.Monitor, this);
-        pm.registerEvent(Event.Type.PLUGIN_DISABLE,   serverListener, Priority.Monitor, this);
+        pm.registerEvent(Event.Type.PLUGIN_ENABLE,    serverListener,   Priority.Monitor, this);
+        pm.registerEvent(Event.Type.PLUGIN_DISABLE,   serverListener,   Priority.Monitor, this);
         
         System.out.println(pdfFile.getName() + " v" + pdfFile.getVersion() + " enabled." );
     }

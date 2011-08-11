@@ -14,17 +14,21 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.ContainerBlock;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.Door;
 
 public class TCRestore {
 	//Blocks
 	private static int[] blockArray = {0,1,2,3,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,35,41,42,43,44,45,46,47,48,49,52,54,56,57,58,60,61,62,67,73,74,79,80,81,82,84,85,86,87,88,89,90,91,92};
 	private static Set<Integer> blockSet = new HashSet<Integer>();
 	private static String c = ":";
+	private static String s = " ";
 	
 	public static void saveTemple(Location p1, Location p2, Temple temple){	
 		World world = p1.getWorld();
@@ -39,7 +43,7 @@ public class TCRestore {
 		// Save the precious patch
 	    HashMap<EntityPosition, String> preciousPatch = new HashMap<EntityPosition, String>();
 	    Location lo;
-	    String id;
+	    String id = "";
 	    // Save top to bottom so it loads bottom to top	    
 	    for (int j = y2; j >= y1; j--)
         {
@@ -48,16 +52,30 @@ public class TCRestore {
 	            for (int k = z1; k <= z2; k++)
 	            {
 	            	Block b = world.getBlockAt(i,j,k);
-	            	if(isDefaultBlock(b)){
+	            	boolean push = true;
+	            	if(b.getTypeId() == getDefaultBlock(j)){
 	            		continue;
+	            		// Save chest and furnace and dispenser inventories
+	            	} else if(b.getState() instanceof ContainerBlock){
+	            		if(!contentsToString((ContainerBlock)b.getState()).replace(" ", "").isEmpty()){
+	            			id = b.getTypeId()+c+b.getData() + c + contentsToString((ContainerBlock)b.getState());	
+	            		} else {
+	            			id = b.getTypeId()+c+b.getData();
+	            		}
+	            		// Don't save the top halves of doors
+	            	} else if((b.getTypeId() == 71 || b.getTypeId() == 64) && b.getData() > 7) {
+           				push = false;
+            			// Save sign messages
 	            	} else if(b.getTypeId() == 68 || b.getTypeId() == 63){
 	            		Sign sign = (Sign) b.getState();
 	            		id = b.getTypeId()+c+b.getData() + c + sign.getLine(0) + c + sign.getLine(1) + c + sign.getLine(2) + c + sign.getLine(3);
 	            	} else {
 	            		id = b.getTypeId()+c+b.getData();
 	            	}
-	                lo = world.getBlockAt(i-x1,j-y1,k-z1).getLocation();
-	                preciousPatch.put(new EntityPosition(lo),id);
+	            	if(push){
+	            		lo = world.getBlockAt(i-x1,j-y1,k-z1).getLocation();
+	            		preciousPatch.put(new EntityPosition(lo),id);
+	            	}
 	            }
 	        }
 	    }
@@ -80,7 +98,31 @@ public class TCRestore {
 	    }
 	}
 	
-	private static boolean isDefaultBlock(Block b) {
+	private static String contentsToString(ContainerBlock cb) {
+		StringBuilder result = new StringBuilder();
+		for(ItemStack item : cb.getInventory().getContents()){
+			if(item != null)
+				result.append(item.getTypeId() + s + item.getAmount() + s + item.getDurability() + s);
+			else
+				result.append(s+s+s);
+		}
+		result.deleteCharAt(result.length()-1);
+		return result.toString();
+	}
+	
+	private static void contentsFromString(ContainerBlock cb, String string) {
+		String[] items = string.split(s);
+		for(int i = 0; i < items.length; i+=3){
+			if(items[i] == null || items[i].isEmpty())
+				continue;
+			ItemStack item = new ItemStack(Integer.parseInt(items[i]));
+			item.setAmount(Integer.parseInt(items[i+1]));
+			item.setDurability(Short.parseShort(items[i+2]));
+			cb.getInventory().setItem(i/3, item);
+		}
+	}
+
+	public static int getDefaultBlock(int y) {
 		int[] levels = TempleManager.landLevels;
 		byte[] mats = TempleManager.landMats;
 		for(int i = 0; i<levels.length; i++){
@@ -90,10 +132,10 @@ public class TCRestore {
 			else
 				bottom = levels[i-1];
 			top = levels[i];
-			if(b.getLocation().getBlockY() > bottom && b.getLocation().getBlockY() <= top && b.getTypeId() == mats[i])
-				return true;
+			if(y >= bottom && y <= top)
+				return mats[i];
 		}
-		return false;
+		return 0;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -124,23 +166,6 @@ public class TCRestore {
 	    	}
         }
         
-        // Put blocks into seperate maps to load in a specific order to prevent glitches (e.g. blocks before torches and redstone)
-        for (EntityPosition ep : preciousPatch.keySet()){        	
-        	String[] s = preciousPatch.get(ep).split(c);
-        	
-        	double x = ep.getX()+startLoc.getX();
-        	double y = ep.getY()+startLoc.getY();
-        	double z = ep.getZ()+startLoc.getZ();
-        	Location loc = new Location(world, x, y, z);
-        	Block b = world.getBlockAt(loc);
-        	
-        	for(int id : blockArray){
-        		if(id == Integer.parseInt(s[0])){
-        			b.setTypeIdAndData(Integer.parseInt(s[0]), Byte.parseByte(s[1]), true);
-            	}
-        	}
-        }
-        
         for (EntityPosition ep : preciousPatch.keySet()){        	
         	String[] s = preciousPatch.get(ep).split(c);
         	
@@ -155,9 +180,13 @@ public class TCRestore {
         	
        		if(blockSet.contains(id)){
     			b.setTypeIdAndData(id, data, true);
+    			if(b.getState() instanceof ContainerBlock){
+    				if(s.length > 2)
+    					contentsFromString((ContainerBlock)b.getState(), s[2]);
+    			}
         	}
-        	
-        	addToTempleSets(temple, b);
+       		
+       		addToTempleSets(temple, b);
         	TCUtils.expandRegion(temple, loc);
         }
         
@@ -175,17 +204,20 @@ public class TCRestore {
         	
        		if(!blockSet.contains(id)){
     			b.setTypeIdAndData(id, data, true);
-    			if(b.getTypeId() == 68 || b.getTypeId() == 63){
+    			if(b.getTypeId() == 71 || b.getTypeId() == 64){
+    				b.getRelative(0,1,0).setTypeIdAndData(b.getTypeId(),(byte) (b.getData()+8), true);
+    			} else if(b.getTypeId() == 68 || b.getTypeId() == 63){
             		if(s.length > 2){
             			for(int i = 2; i<s.length;i++){
+            				if((i-2)>3 || (i-2)<0 || s[i] == null)
+            					continue;
             				Sign sign = (Sign) b.getState();
             				sign.setLine((i-2), s[i]);
             			}
             		}
             	}
         	}
-
-        	addToTempleSets(temple, b);
+       		addToTempleSets(temple, b);
         	TCUtils.expandRegion(temple, loc);
         }
 	}

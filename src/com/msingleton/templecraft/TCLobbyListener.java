@@ -109,14 +109,16 @@ public class TCLobbyListener extends PlayerListener
 	            }
         	} else {
         		Holdings balance = iConomy.getAccount(p.getName()).getHoldings();
-        		if(balance.hasEnough(temple.JoinCost)){
+        		if(balance.hasEnough(temple.rejoinCost)){
         			if (tp.currentClass != null)
     	            {
         				temple.readySet.add(p);
         				p.teleport(temple.templeLoc);
-        				String msg = ChatColor.GOLD + "" + temple.JoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
-        				temple.tellPlayer(p, msg);
-        				balance.subtract(temple.JoinCost);
+        				if(temple.rejoinCost > 0){
+        					String msg = ChatColor.GOLD + "" + temple.rejoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
+        					temple.tellPlayer(p, msg);
+        					balance.subtract(temple.rejoinCost);
+    	            	}
     	            }
         			else
     	            {

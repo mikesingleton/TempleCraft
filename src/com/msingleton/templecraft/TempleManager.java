@@ -36,6 +36,7 @@ public class TempleManager
     public static World    world               = null;
     protected static boolean isEnabled         = true;
     protected static boolean checkUpdates;
+    protected static boolean dropBlocks;
     
     // Configuration
     protected static Configuration config = null;
@@ -47,8 +48,7 @@ public class TempleManager
     protected static Map<String,String> classArmorMap  = new HashMap<String,String>();
     protected static Map<String,String> classEnabledItemsMap  = new HashMap<String,String>();
     
-    
-    // 
+    // A Map of which temples are being editted in which World
     public static Map<String,World> templeEditMap  = new HashMap<String,World>();
     
     //public static Map<String,Temple> templeMap  = new HashMap<String,Temple>();
@@ -56,7 +56,8 @@ public class TempleManager
     protected static Set<Temple> templeSet         = new HashSet<Temple>();
     protected static Set<Temple> customTempleSet   = new HashSet<Temple>();
     protected static Set<Player> playerSet         = new HashSet<Player>();
-    public static Set<Material> breakable          = new HashSet<Material>();    
+    public static Set<Integer> breakable          = new HashSet<Integer>();    
+    public static String breakableMats;
     
     //Flatland Configs
     public static int[] landLevels = {0,60,64,65,128};
@@ -65,6 +66,7 @@ public class TempleManager
     public static int repairDelay;
     public static int maxEditWorlds;
     public static int maxTemplesPerPerson;
+    public static int rejoinCost;
     
     /**
      * Initializes the TempleManager.
@@ -82,6 +84,9 @@ public class TempleManager
             repairDelay            = TCUtils.getInt("settings.repairdelay", 5);
             maxEditWorlds          = TCUtils.getInt("settings.maxeditworlds", 4);
             maxTemplesPerPerson    = TCUtils.getInt("settings.maxtemplesperperson", 1);
+            rejoinCost             = TCUtils.getInt("settings.rejoincost", 0);
+            breakableMats          = TCUtils.getString("settings.breakablemats", "46,82");
+            dropBlocks             = TCUtils.getBoolean("settings.dropblocks", false);
         	classes                = TCUtils.getClasses();
         	classItemMap           = TCUtils.getClassItems(config, "classes.","items");
         	classArmorMap          = TCUtils.getClassItems(config, "classes.","armor");
@@ -98,9 +103,10 @@ public class TempleManager
 
     private static void loadSets() {
 		//breakable
-    	breakable.add(Material.TNT);
-    	breakable.add(Material.COBBLESTONE);
-    	breakable.add(Material.CLAY);
+    	for(String s : breakableMats.split(",")){
+    		s = s.trim();
+    		breakable.add(Integer.parseInt(s));
+    	}
 	}
 
 	/* ///////////////////////////////////////////////////////////////////// //
