@@ -5,7 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 
 /**
- * NOTE: I (garbagemule) DID NOT WRITE THIS CLASS (notice the author below)
+ * NOTE: I DID NOT WRITE THIS CLASS (notice the author below)
  * @author creadri
  */
 @SuppressWarnings("serial")

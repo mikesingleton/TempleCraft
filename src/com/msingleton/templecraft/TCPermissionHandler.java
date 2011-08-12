@@ -3,9 +3,8 @@ package com.msingleton.templecraft;
 import org.bukkit.entity.Player;
 
 public class TCPermissionHandler {
-	public static String[] allPermissions = {"info","join","leave","ready","templelist","playerlist","forcestart","forceend","save","nullclass","checkupdates","newtemple","edittemple","deletetemple","savetemple","addplayer","removeplayer","reload"};
+	public static String[] allPermissions = {"join","leave","ready","templelist","playerlist","forcestart","forceend","checkupdates","newtemple","edittemple","deletetemple","savetemple","addplayer","removeplayer","reload"};
 	public static String[] descriptions = {
-		"/tc info - Displays info.",
 		"/tc join <temple> - Join Temple <temple>.",
         "/tc leave          - Leave current Temple.",
         "/tc ready         - List of players who aren't ready.",
@@ -13,8 +12,6 @@ public class TCPermissionHandler {
         "/tc plist            - Lists players in Temples.",
         "/tc forcestart <temple> - Manually start a Temple.",
         "/tc forceend <temple>   - Manually end a Temple.",
-        "/tc save                    - Save class info.",
-        "/tc nullclass               - Gives the user a null class.",
         "/tc checkupdates         - Checks for updates.",
 		"/tc new                - Creates a new Temple.",
         "/tc edit <temple>     - Edit an existing temple.",

@@ -57,13 +57,10 @@ public class TCDamageListener extends EntityListener
     	if (!event.getEntity().getWorld().equals(TempleManager.world))
             return;
     	
-    	Temple temple = TCUtils.getTemple(event.getEntity());
-    	int damage = event.getDamage();
-    	
     	if (event.getEntity() instanceof Player){
     		Player p = (Player)event.getEntity();
-    		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-    		if(tp.currentClass == null){
+    		Temple temple = TempleManager.templePlayerMap.get(p).currentTemple;
+    		if(temple != null && !temple.readySet.contains(p)){
     			p.setFireTicks(0);
     			return;
     		}
@@ -78,77 +75,16 @@ public class TCDamageListener extends EntityListener
 	        int id = entity2.getEntityId();
 	        
 	        if(entity2 instanceof LivingEntity && ((LivingEntity)entity2).getHealth() > 0){
-	        	if (entity instanceof Player){
-	        		buffExp(temple, ((Player)entity), entity2, damage);
-	        		temple.lastDamager.remove(id);
-        			temple.lastDamager.put(id, entity);
-	        	}
+	        	Temple temple = TCUtils.getTemple(entity);
+	        	if(temple == null)
+	        		temple = TCUtils.getTemple(entity2);
+	        	if(temple == null)
+	        		return;
+	        	temple.lastDamager.remove(id);
+        		temple.lastDamager.put(id, entity);
 	        }
-	        /*
-	        if (!(event.getEntity() instanceof Player))
-	         
-	            return;
-	        
-	        Player p = (Player)event.getEntity();
-	        
-	        if (p.getHealth() > getDamageWillBeDelt(p, damage))
-	            return;
-	        
-	        event.setCancelled(true);
-	        temple.playerDeath(p);
-	        */
 	    }
     }
-    
-    private void buffExp(Temple temple, Player p, Entity e, int damage) {
-    	int id = e.getEntityId();
-    	String key = p.getName()+"."+id;
-    	double scaler = 1;
-    	int xp = 0;
-    	
-    	if(e instanceof Spider)
-    		scaler = 1;
-    	
-    	if(e instanceof Zombie)
-    		scaler = 1;
-    	
-    	if(e instanceof Skeleton)
-    		scaler = 1.4;
-    	
-    	if(e instanceof Creeper)
-    		scaler = 2;
-    	
-    	if(e instanceof Wolf)
-    		scaler = 3;
-    	
-    	if(e instanceof Slime)
-    		scaler = 1;
-    	
-    	if(e instanceof PigZombie)
-    		scaler = 1.6;
-    	
-    	if(e instanceof Monster)
-    		scaler = 1.4;
-    	
-    	xp = (int)(damage*scaler);
-		if(!temple.expBuffer.containsKey(key)){
-			temple.expBuffer.put(key, xp);
-		} else {
-			temple.expBuffer.put(key, temple.expBuffer.remove(key)+xp);
-		}
-	}
-
-    /*
-	private int getDamageWillBeDelt(Player p, int damage) {
-    	double total = 0;
-		double max = 0;
-		for(ItemStack i : p.getInventory().getArmorContents()){
-			total += i.getDurability();
-			max += i.getType().getMaxDurability();
-		}
-		int result = (int) Math.ceil((double)damage*(1.0-(max-total)/max));
-		return result;
-	}*/
 
 	/**
      * Clears all player/monster drops on death.
@@ -185,9 +121,7 @@ public class TCDamageListener extends EntityListener
                 return;
           
             Entity lastDamager = temple.lastDamager.remove(e.getEntityId());
-            TCUtils.sendDeathMessage(e, lastDamager, temple.expBuffer);
-           	if(temple.expBuffer != null && !temple.expBuffer.isEmpty())
-           		TCUtils.addXP(e, temple.expBuffer);
+            TCUtils.sendDeathMessage(e, lastDamager);
            	
            	if(lastDamager instanceof Player){
 	           	TempleManager.templePlayerMap.get(lastDamager).roundMobsKilled++;
@@ -195,7 +129,8 @@ public class TCDamageListener extends EntityListener
 	           		for(Player p : temple.playerSet){
 	           			int gold = temple.mobGoldMap.get(e.getEntityId())/temple.playerSet.size();
 	           			TempleManager.templePlayerMap.get(p).roundGold += gold;
-	           			iConomy.getAccount(p.getName()).getHoldings().add(gold);
+	           			if(TempleCraft.iConomy != null)
+	           				iConomy.getAccount(p.getName()).getHoldings().add(gold);
 	           		}
 	           	}
            	}
@@ -226,10 +161,11 @@ public class TCDamageListener extends EntityListener
     		boolean result = true;
 	    	for(Temple temple : TempleManager.templeSet)
 	    		if(temple.isRunning)
-					for(Location sploc : temple.getSpawnpoints())
+					for(Location sploc : temple.mobSpawnpointSet)
 						if(TCUtils.distance(loc, sploc) < 2){
-    						temple.monsterSet.add(e);
     						result = false;
+    						temple.monsterSet.add(e);
+    						temple.mobSpawnpointMap.remove(sploc);
 						}
 	    	event.setCancelled(result);
     	}

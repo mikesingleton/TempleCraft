@@ -49,7 +49,7 @@ public class TCBlockListener extends BlockListener
     	
     	boolean cancel = true;
     	
-        if ((!temple.isSetup || !temple.isRunning) && !event.getPlayer().isOp())
+        if (!temple.isRunning && event.getPlayer().isOp())
             cancel = false;
         
         if (TempleManager.breakable.contains(b.getTypeId()))
@@ -87,7 +87,7 @@ public class TCBlockListener extends BlockListener
     		return;
     	}
     	
-    	if (!temple.isSetup || !temple.isRunning && event.getPlayer().isOp())
+    	if (!temple.isRunning && event.getPlayer().isOp())
             return;
         
         if (temple.isRunning && TempleManager.playerSet.contains(event.getPlayer()))

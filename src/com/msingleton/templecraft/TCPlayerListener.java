@@ -1,8 +1,10 @@
 package com.msingleton.templecraft;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -48,13 +50,20 @@ public class TCPlayerListener  extends PlayerListener{
 		if(!temple.isRunning)
 			return;
 		
-		for(Location loc : temple.activeSpawnpoints){
-			if(TCUtils.distance(loc, p.getLocation()) < 20){
-				temple.SpawnMobs(loc);
-				temple.inactiveSpawnpoints.add(loc);
+		for(Location loc : temple.checkpointMap.keySet()){
+			if(tp.currentCheckpoint != loc && TCUtils.distance(loc, p.getLocation()) < temple.checkpointMap.get(loc)){
+				tp.currentCheckpoint = loc;
 			}
 		}
-		temple.activeSpawnpoints.removeAll(temple.inactiveSpawnpoints);
+		
+		Set<Location> tempLocs = new HashSet<Location>();
+		for(Location loc : temple.mobSpawnpointMap.keySet()){
+			if(TCUtils.distance(loc, p.getLocation()) < 20){
+				tempLocs.add(loc);
+			}
+		}
+		for(Location loc : tempLocs)
+			temple.SpawnMobs(loc, temple.mobSpawnpointMap.remove(loc));
     }
 
 	 public void onPlayerInteract(PlayerInteractEvent event){    
@@ -102,50 +111,13 @@ public class TCPlayerListener  extends PlayerListener{
 	}
 	 
 	private void handleSign(Player p, Action a, Sign sign) {
-		// Check if the first line of the sign is a class name.
 		String Line1 = sign.getLine(0);
         String Line2 = sign.getLine(1);
-        String Line3 = sign.getLine(2).toLowerCase();
-        String Line4 = sign.getLine(3).toLowerCase();
-        if (!TempleManager.classes.contains(Line2)){
-        	if(!Line1.equals("[TempleCraft]"))
-        		return;
-        	Temple temple = TCUtils.getTempleByName(Line2.toLowerCase());
-        	if(temple != null){
-        		if(Line3.contains("level")){
-        			int level = Integer.parseInt(Line3.replace("level", "").replace("+","").trim());
-        			temple.minLevel = level;
-        			
-        			for(String className : TempleManager.classes){
-        				if(hasLevel(p, className,level)){
-        					temple.playerJoin(p);
-        					return;
-        				}
-        			}
-        			TempleManager.tellPlayer(p, "You don't have any classes with a high enough level to join this temple.");
-        		}
-        	}
-        } else {
-        	if (a == Action.RIGHT_CLICK_BLOCK)
-            {
-                TempleManager.tellPlayer(p, "Punch the sign to select a class.");
-                return;
-            }
-        	
-        	// Set the player's class.
-        	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-    		Temple temple = tp.currentTemple;
-        	if(temple == null  || hasLevel(p, Line2, temple.minLevel)){
-        		TempleManager.assignClass(p, Line2);
-	        	TempleManager.tellPlayer(p, "You have chosen " + Line2 + " as your class!");
-        	} else{
-				TempleManager.tellPlayer(p, "Your "+Line2+" class isn't a high enough level to join this temple.");
-        	}
-			return;
-        }
-	}
-
-	private boolean hasLevel(Player p, String className, int level) {
-		return TempleManager.templePlayerMap.get(p).classLevel.get(className) >= level;
-	}	
+    	if(!Line1.equals("[TempleCraft]") && !Line1.equals("[TC]"))
+    		return;
+    	Temple temple = TCUtils.getTempleByName(Line2.toLowerCase());
+    	if(temple != null){
+    		temple.playerJoin(p);
+    	}
+    }
 }

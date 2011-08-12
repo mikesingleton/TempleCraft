@@ -130,144 +130,6 @@ public class TCUtils
 			playerInv.setBoots(originalContents.getFeet());
 		}
 	}
-	
-    /* Gives all the items in the input string(s) to the player */
-    public static void giveItems(boolean reward, Player p, String... strings)
-    {    	
-        // Variables used.
-        ItemStack stack;
-        int id, amount;
-        
-        PlayerInventory inv;
-        
-        if (reward)
-            inv = p.getInventory();
-        else
-            inv = clearInventory(p);
-        
-        for (String s : strings)
-        {
-            /* Trim the list, remove possible trailing commas, split by
-             * commas, and start the item loop. */
-            s = s.trim();
-            if (s.endsWith(","))
-                s = s.substring(0, s.length()-1);
-            String[] items = s.split(",");
-            
-            // For every item in the list
-            for (String i : items)
-            {            	
-                /* Take into account possible amount, and if there is
-                 * one, set the amount variable to that amount, else 1. */
-                i = i.trim();
-                String[] item = i.split(":");
-                if (item.length >= 2 && item[1].matches("[0-9]+"))
-                    amount = Integer.parseInt(item[1]);
-                else
-                    amount = 1;
-                
-                // Create ItemStack with appropriate constructor.
-                if (item[0].matches("[0-9]+"))
-                {
-                    id = Integer.parseInt(item[0]);
-                    stack = new ItemStack(id, amount);
-                    if (!reward && SWORDS_TYPE.contains(stack.getType()))
-                        stack.setDurability((short)-3276);
-                }
-                else
-                {
-                    stack = makeItemStack(item[0], amount);
-                    if (stack == null) continue;
-                    if (!reward && SWORDS_TYPE.contains(stack.getType()))
-                        stack.setDurability((short)-3276);
-                }
-                if (item.length == 3 && item[1].matches("[0-9]+"))
-                	stack.setDurability((short) Integer.parseInt(item[2]));
-                
-                inv.addItem(stack);
-            }
-        }
-    }
-    
-    /* Used for giving items "normally". */
-    public static void giveItems(Player p, String... strings)
-    {
-        giveItems(false, p, strings);
-    }
-    
-    /* Places armor listed in the input string on the Player */
-    public static void equipArmor(Player p, String s){
-    	// Variables used.
-        ItemStack stack;
-        int id;
-        
-        PlayerInventory inv = p.getInventory();
-		
-        /* Trim the list, remove possible trailing commas and split by commas. */
-        s = s.trim();
-        if (s.endsWith(","))
-            s = s.substring(0, s.length()-1);
-        String[] items = s.split(",");
-        
-        // For every item in the list
-        for (String i : items)
-        {
-            i = i.trim();
-            
-            // Create ItemStack with appropriate constructor.
-            if (i.matches("[0-9]+"))
-            {
-                id = Integer.parseInt(i);
-                stack = new ItemStack(id, 1);
-            }
-            else
-            {
-                stack = makeItemStack(i, 1);
-                if (stack == null) continue;
-            }
-            
-            // Apply the armor to the correct part of the body
-            if(stack.getType() == Material.LEATHER_HELMET || stack.getType() == Material.IRON_HELMET || stack.getType() == Material.GOLD_HELMET || stack.getType() == Material.DIAMOND_HELMET){
-            	inv.setHelmet(stack);
-            } else if(stack.getType() == Material.LEATHER_CHESTPLATE || stack.getType() == Material.IRON_CHESTPLATE || stack.getType() == Material.GOLD_CHESTPLATE || stack.getType() == Material.DIAMOND_CHESTPLATE){
-		        inv.setChestplate(stack);
-            } else if(stack.getType() == Material.LEATHER_LEGGINGS || stack.getType() == Material.IRON_LEGGINGS || stack.getType() == Material.GOLD_LEGGINGS || stack.getType() == Material.DIAMOND_LEGGINGS){
-		        inv.setLeggings(stack);
-            } else if(stack.getType() == Material.LEATHER_BOOTS || stack.getType() == Material.IRON_BOOTS || stack.getType() == Material.GOLD_BOOTS || stack.getType() == Material.DIAMOND_BOOTS){
-		        inv.setBoots(stack);
-            } else {
-            	System.out.println("No Armor was detected by TCUtils.getArmor");
-            }
-        }
-    }
-    
-    /* Helper method for grabbing a random reward */
-    public static String getRandomReward(String rewardlist)
-    {
-        Random ran = new Random();
-        
-        String[] rewards = rewardlist.split(",");
-        String item = rewards[ran.nextInt(rewards.length)];
-        return item.trim();
-    }
-    
-    /* Helper method for making an ItemStack out of a string */
-    private static ItemStack makeItemStack(String s, int amount)
-    {
-        Material mat;
-        try
-        {
-            mat = Material.valueOf(s.toUpperCase());
-            return new ItemStack(mat, amount);
-        }
-        catch (Exception e)
-        {
-            System.out.println("[TempleCraft] ERROR! Could not create item " + s + ". Check config.yml");
-            return null;
-        }
-    }
-    
-    
     
     /* ///////////////////////////////////////////////////////////////////// //
     
@@ -405,43 +267,6 @@ public class TCUtils
         }
         
         return c.getKeys("classes");
-    }
-    
-    /**
-     * Generates a map of class names and class items based on the
-     * type of items ("items" or "armor") and the config-file.
-     * Will explode if the classes aren't well-defined.
-     */
-    public static Map<String,String> getClassItems(Configuration c, String path, String type)
-    {
-        c.load();
-        
-        Map<String,String> result = new HashMap<String,String>();
-        
-        // Assuming well-defined classes.
-        List<String> classes = TempleManager.classes;
-        for (String s : classes)
-        {
-            result.put(s, c.getString(path + s + "." + type, null));
-        }
-        
-        return result;
-    }
-    
-    public static Map<String,String> getClassEnabledItems(Configuration c, String path, String type)
-    {
-        c.load();
-        
-        Map<String,String> result = new HashMap<String,String>();
-        
-        // Assuming well-defined classes.
-        List<String> classes = TempleManager.classes;
-        for (String s : classes)
-        {
-            result.put(s, c.getString(path + s + "." + type, null));
-        }
-        
-        return result;
     }
     
     /**
@@ -672,19 +497,7 @@ public class TCUtils
         return (Player) array[random.nextInt(array.length)];
     }
     
-    public static void addXP(Entity entity, Map<String, Integer> expBuffer) {
-    	Temple temple = TCUtils.getTemple(entity);
-    	
-    	for(Player p: temple.playerSet){
-    		String key = p.getName() + "." + entity.getEntityId();
-    		if(expBuffer.containsKey(key)){
-    			TemplePlayer player = TempleManager.templePlayerMap.get(p);
-    			player.addXp(player.currentClass, expBuffer.remove(key));
-    		}
-    	}
-	}
-    
-    public static void sendDeathMessage(Entity entity, Entity entity2, Map<String, Integer> expBuffer){
+    public static void sendDeathMessage(Entity entity, Entity entity2){
     	Temple temple = TCUtils.getTemple(entity);
     	
     	String msg = "";
@@ -702,13 +515,14 @@ public class TCUtils
     	if(entity instanceof Creature)
     		killed = ((Creature)entity).getClass().getSimpleName().replace("Craft", "");
     	
+    	if(killer.equals("")){
+    		String s = entity.getLastDamageCause().getCause().name().toLowerCase();
+    		killer = s.substring(0,1).toUpperCase().concat(s.substring(1, s.length()));
+    	}
+    	
 		for(Player p: temple.playerSet){
-			String key = p.getName() + "." + entity.getEntityId();
-			
+			//String key = p.getName() + "." + entity.getEntityId();
 			msg = killer + ChatColor.RED + " killed " + ChatColor.WHITE + killed;
-    		
-			if(expBuffer.containsKey(key))
-        		msg += ChatColor.GREEN + " (" + expBuffer.get(key) + " XP)";
     		
 			if(temple.mobGoldMap.containsKey(entity.getEntityId()) && entity2 instanceof Player)
 				msg += ChatColor.GOLD + " (+" + temple.mobGoldMap.get(entity.getEntityId())/temple.playerSet.size() + " Gold)";
@@ -788,10 +602,13 @@ public class TCUtils
     	tp.addAccessTo(templeName);
 		
 		World EditWorld = TCUtils.getEditWorld(p, temple);
-		TempleManager.clearWorld(EditWorld);
 		
 		if(EditWorld == null)
 			return;
+		
+		TempleManager.clearWorld(EditWorld);
+		EditWorld.setTime(8000);
+		EditWorld.setStorm(false);
 		
     	editTemple(p, temple);
 	}
@@ -816,6 +633,8 @@ public class TCUtils
 		
 		if(temple.editorSet.isEmpty()){
 			TempleManager.clearWorld(EditWorld);
+			EditWorld.setTime(8000);
+			EditWorld.setStorm(false);
 			temple.loadTemple(EditWorld);
 		}
 		temple.editorSet.add(p);

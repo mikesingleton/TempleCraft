@@ -34,18 +34,18 @@ public class TCRestore {
 		World world = p1.getWorld();
 		
 	    int x1 = (int)p1.getX();
-	    int y1 = (int)p1.getY();
+	    int y1 = 0;
 	    int z1 = (int)p1.getZ();
 	    int x2 = (int)p2.getX();
-	    int y2 = (int)p2.getY();
+	    int y2 = 128;
 	    int z2 = (int)p2.getZ();
 		
 		// Save the precious patch
 	    HashMap<EntityPosition, String> preciousPatch = new HashMap<EntityPosition, String>();
 	    Location lo;
 	    String id = "";
-	    // Save top to bottom so it loads bottom to top	    
-	    for (int j = y2; j >= y1; j--)
+	    int level = 0;   
+	    for (int j = y1; j <= y2; j++)
         {
 	    	for (int i = x1; i <= x2; i++)
 	    	{
@@ -53,8 +53,10 @@ public class TCRestore {
 	            {
 	            	Block b = world.getBlockAt(i,j,k);
 	            	boolean push = true;
-	            	if(b.getTypeId() == getDefaultBlock(j)){
-	            		continue;
+	            	if(TempleManager.landLevels[level] < j)
+	            		level++;
+	            	if(b.getTypeId() == TempleManager.landMats[level]){
+	           			continue;
 	            		// Save chest and furnace and dispenser inventories
 	            	} else if(b.getState() instanceof ContainerBlock){
 	            		if(!contentsToString((ContainerBlock)b.getState()).replace(" ", "").isEmpty()){
@@ -90,6 +92,8 @@ public class TCRestore {
 	        oos.writeObject(preciousPatch);
 	        oos.close();
 	        File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName + TempleCraft.fileExtention);
+	        if(file.exists())
+	        	file.delete();
 	        tmpfile.renameTo(file);
 	    }
 	    catch (Exception e)
@@ -124,22 +128,6 @@ public class TCRestore {
 		}
 	}
 
-	public static int getDefaultBlock(int y) {
-		int[] levels = TempleManager.landLevels;
-		byte[] mats = TempleManager.landMats;
-		for(int i = 0; i<levels.length; i++){
-			int bottom, top;
-			if(i == 0)
-				bottom = 0;
-			else
-				bottom = levels[i-1];
-			top = levels[i];
-			if(y >= bottom && y <= top)
-				return mats[i];
-		}
-		return 0;
-	}
-
 	@SuppressWarnings("unchecked")
 	public static void loadTemple(Location startLoc, Temple temple){
 		World world = startLoc.getWorld();
@@ -170,41 +158,42 @@ public class TCRestore {
         
         for (EntityPosition ep : preciousPatch.keySet()){        	
         	String[] s = preciousPatch.get(ep).split(c);
-        	
-        	double x = ep.getX()+startLoc.getX();
-        	double y = ep.getY()+startLoc.getY();
-        	double z = ep.getZ()+startLoc.getZ();
-        	Location loc = new Location(world, x, y, z);
-        	Block b = world.getBlockAt(loc);
-        	
+        	        	
         	int id = Integer.parseInt(s[0]);
-        	byte data = Byte.parseByte(s[1]);
         	
        		if(blockSet.contains(id)){
+       			double x = ep.getX()+startLoc.getX();
+            	double y = ep.getY()+startLoc.getY();
+            	double z = ep.getZ()+startLoc.getZ();
+            	Location loc = new Location(world, x, y, z);
+            	Block b = world.getBlockAt(loc);
+            	
+            	byte data = Byte.parseByte(s[1]);
+            	
     			b.setTypeIdAndData(id, data, true);
     			if(b.getState() instanceof ContainerBlock){
     				if(s.length > 2)
     					contentsFromString((ContainerBlock)b.getState(), s[2]);
     			}
+    			addToTempleSets(temple, b);
+            	TCUtils.expandRegion(temple, loc);
         	}
-       		
-       		addToTempleSets(temple, b);
-        	TCUtils.expandRegion(temple, loc);
         }
         
         for (EntityPosition ep : preciousPatch.keySet()){        	
         	String[] s = preciousPatch.get(ep).split(c);
         	
-        	double x = ep.getX()+startLoc.getX();
-        	double y = ep.getY()+startLoc.getY();
-        	double z = ep.getZ()+startLoc.getZ();
-        	Location loc = new Location(world, x, y, z);
-        	Block b = world.getBlockAt(loc);
-        	
         	int id = Integer.parseInt(s[0]);
-        	byte data = Byte.parseByte(s[1]);
         	
        		if(!blockSet.contains(id)){
+       			double x = ep.getX()+startLoc.getX();
+            	double y = ep.getY()+startLoc.getY();
+            	double z = ep.getZ()+startLoc.getZ();
+            	Location loc = new Location(world, x, y, z);
+            	Block b = world.getBlockAt(loc);
+            	
+            	byte data = Byte.parseByte(s[1]);
+            	
     			b.setTypeIdAndData(id, data, true);
     			if(b.getTypeId() == 71 || b.getTypeId() == 64){
     				b.getRelative(0,1,0).setTypeIdAndData(b.getTypeId(),(byte) (b.getData()+8), true);
@@ -218,9 +207,9 @@ public class TCRestore {
             			}
             		}
             	}
+    			addToTempleSets(temple, b);
+            	TCUtils.expandRegion(temple, loc);
         	}
-       		addToTempleSets(temple, b);
-        	TCUtils.expandRegion(temple, loc);
         }
 	}
 

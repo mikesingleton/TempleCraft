@@ -19,30 +19,39 @@ public class TCDisconnectListener extends PlayerListener
     
     public void onPlayerQuit(PlayerQuitEvent event)
     {
-    	handleEvent(event.getPlayer());
+    	if(!TempleManager.isEnabled)
+    		return;
+    	
+    	Player p = event.getPlayer();
+    	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+		tp.saveData();
+		if(TCUtils.hasPlayerInventory(p.getName()))
+			TCUtils.restorePlayerInventory(p);
+		if (TempleManager.playerSet.contains(p))
+			TempleManager.playerLeave(p);
     }
     
     public void onPlayerKick(PlayerKickEvent event)
     {
-    	handleEvent(event.getPlayer());
-    }
-    
-    private void handleEvent(Player p) {    
     	if(!TempleManager.isEnabled)
     		return;
-        if(TCUtils.hasPlayerInventory(p.getName()))
+    	
+    	Player p = event.getPlayer();
+    	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+    	tp.saveData();
+		if(TCUtils.hasPlayerInventory(p.getName()))
 			TCUtils.restorePlayerInventory(p);
-        if(!TempleManager.templePlayerMap.containsKey(p))
-        	TempleManager.templePlayerMap.put(p, new TemplePlayer(p));   
-      	TempleManager.templePlayerMap.get(p).saveData();
-        if (TempleManager.playerSet.contains(p))
-            TempleManager.playerLeave(p);
-	}
+		if (TempleManager.playerSet.contains(p))
+			TempleManager.playerLeave(p);
+    }
 
 	public void onPlayerJoin(PlayerJoinEvent event)
     {		
+    	if(!TempleManager.isEnabled)
+    		return;
+    	
     	final Player p = event.getPlayer();
-        handleEvent(p);
+    	TempleManager.templePlayerMap.put(p, new TemplePlayer(p));
         
         if (!TempleManager.checkUpdates)
             return;

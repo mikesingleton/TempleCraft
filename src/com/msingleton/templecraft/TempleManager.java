@@ -41,25 +41,19 @@ public class TempleManager
     // Configuration
     protected static Configuration config = null;
     
-	// Maps for storing player classes, class items and armor.
-    public static List<String> classes          = new ArrayList<String>();
-    //public static Map<Player,String> classMap       = new HashMap<Player,String>();
-    protected static Map<String,String> classItemMap   = new HashMap<String,String>();
-    protected static Map<String,String> classArmorMap  = new HashMap<String,String>();
-    protected static Map<String,String> classEnabledItemsMap  = new HashMap<String,String>();
-    
     // A Map of which temples are being editted in which World
     public static Map<String,World> templeEditMap  = new HashMap<String,World>();
-    
-    //public static Map<String,Temple> templeMap  = new HashMap<String,Temple>();
     public static Map<Player,TemplePlayer> templePlayerMap  = new HashMap<Player,TemplePlayer>();
     protected static Set<Temple> templeSet         = new HashSet<Temple>();
     protected static Set<Temple> customTempleSet   = new HashSet<Temple>();
     protected static Set<Player> playerSet         = new HashSet<Player>();
-    public static Set<Integer> breakable          = new HashSet<Integer>();    
+    public static Set<Integer> breakable           = new HashSet<Integer>();    
     public static String breakableMats;
+    public static String goldPerMob;
     
-    //Flatland Configs
+    final public static String[] mobs = {"Chicken","Cow","Pig","Sheep","Zombie","Pig_Zombie","Skeleton","Creeper","Wolf","Ghast","Monster","Slime","Spider","Squid"};
+    
+    // Flatland Configs
     public static int[] landLevels = {0,60,64,65,128};
     public static byte[] landMats = {7,1,3,2,0};
     
@@ -67,6 +61,8 @@ public class TempleManager
     public static int maxEditWorlds;
     public static int maxTemplesPerPerson;
     public static int rejoinCost;
+    public static int mobGoldMin = 0;
+    public static int mobGoldRan = 0;
     
     /**
      * Initializes the TempleManager.
@@ -81,18 +77,18 @@ public class TempleManager
             config 		           = TCUtils.getConfig("config");
             server                 = plugin.getServer();
             world                  = TCUtils.getTempleWorld();
+            
+            // Configurable
             repairDelay            = TCUtils.getInt("settings.repairdelay", 5);
-            maxEditWorlds          = TCUtils.getInt("settings.maxeditworlds", 4);
+            maxEditWorlds          = TCUtils.getInt("settings.maxeditworlds", 2);
             maxTemplesPerPerson    = TCUtils.getInt("settings.maxtemplesperperson", 1);
             rejoinCost             = TCUtils.getInt("settings.rejoincost", 0);
             breakableMats          = TCUtils.getString("settings.breakablemats", "46,82");
+            goldPerMob             = TCUtils.getString("settings.goldpermob", "50-100");
             dropBlocks             = TCUtils.getBoolean("settings.dropblocks", false);
-        	classes                = TCUtils.getClasses();
-        	classItemMap           = TCUtils.getClassItems(config, "classes.","items");
-        	classArmorMap          = TCUtils.getClassItems(config, "classes.","armor");
-        	classEnabledItemsMap   = TCUtils.getClassItems(config, "classes.","enabled");
+            
         	worldEdit              = TempleCraft.getWorldEdit();
-        	loadSets();
+        	loadMisc();
         	loadTemplePlayers();
         	loadEditWorlds();
 	    	loadCustomTemples();
@@ -101,11 +97,19 @@ public class TempleManager
         checkUpdates            = TCUtils.getBoolean("settings.updatenotification", true);
     }
 
-    private static void loadSets() {
+    private static void loadMisc() {
+    	String[] g = goldPerMob.split("-");
+    	if(g[0] != null){
+    		mobGoldMin = Integer.parseInt(g[0]);
+    		if(g[1] != null)
+    			mobGoldRan = Integer.parseInt(g[1])-Integer.parseInt(g[0]);
+    	}
+    	
 		//breakable
     	for(String s : breakableMats.split(",")){
     		s = s.trim();
-    		breakable.add(Integer.parseInt(s));
+    		if(!s.isEmpty())
+    			breakable.add(Integer.parseInt(s));
     	}
 	}
 
@@ -114,6 +118,17 @@ public class TempleManager
     LOAD/SAVE METHODS
 
 	// ///////////////////////////////////////////////////////////////////// */
+    
+    public static void reloadTemples() {
+    	clearWorld(world);
+    	for(Temple temple : templeSet){
+    		temple.clearTemple();
+    		temple.p1 = null;
+    		temple.p2 = null;
+    	}
+    	for(Temple temple : templeSet)
+    		temple.loadTemple(world);
+    }
     
 	public static void loadCustomTemples() {
 		clearWorld(world);
@@ -159,33 +174,33 @@ public class TempleManager
     public static void playerList(Player p){
 		if (playerSet.isEmpty())
 		{
-		    tellPlayer(p, "There is no one in the Temple right now.");
+		    tellPlayer(p, "There is no one in a Temple right now.");
 		    return;
 		}
 		
-		StringBuffer list = new StringBuffer();
-		final String SEPARATOR = ", ";
-		for (Player player : playerSet)
-		{
-		    list.append(player.getName());
-		    list.append(SEPARATOR);
-		}
-		
-		tellPlayer(p, "Survivors: " + list.substring(0, list.length() - 2));
+		for(Temple temple : templeSet)
+			temple.playerList(p);
 	}
     
-    public static void forceEnd(Player p) {
+    public static void notReadyList(Player p){
+		if (playerSet.isEmpty())
+		{
+		    tellPlayer(p, "There is no one in a Temple right now.");
+		    return;
+		}
+		
 		for(Temple temple : templeSet)
-			temple.forceEnd(p);
+			temple.notReadyList(p);
+	}
+    
+    public static void removePlayers() {
+		for(Temple temple : templeSet)
+			temple.removePlayers();
 	}
     
     public static void clearWorld(World world) {
     	for(Chunk chunk : world.getLoadedChunks()){
 			world.regenerateChunk(chunk.getX(), chunk.getZ());
-    	}
-    	for(Temple temple : templeSet){
-    		temple.p1 = null;
-    		temple.p2 = null;
     	}
 	}
     
@@ -203,7 +218,6 @@ public class TempleManager
     	if(temple == null)
     		return;
     	
-		tp.currentClass = null;
 		tp.currentTemple = null;
 		playerSet.remove(p);
 		
@@ -233,39 +247,6 @@ public class TempleManager
 			TempleManager.tellPlayer(p, msg);
 		}
 		locationMap.remove(p);
-	}
-    
-	/* ///////////////////////////////////////////////////////////////////// //
-	
-    	CLASS METHODS
-	
-	// ///////////////////////////////////////////////////////////////////// */
-	
-	/**
-	* Assigns a class to the player.
-	*/
-	public static void assignClass(Player p, String className)
-	{
-		if(!TCUtils.hasPlayerInventory(p.getName()))
-			TCUtils.keepPlayerInventory(p);
-		p.setHealth(20);
-		templePlayerMap.get(p).currentClass = className;
-		giveClassItems(p);
-	}
-	
-	/**
-	* Grant a player their class-specific items.
-	*/
-	public static void giveClassItems(Player p)
-	{        
-		TemplePlayer tp = templePlayerMap.get(p);
-		String className  = tp.currentClass;
-		String classItems = tp.classItemMap.get(className);
-		String classArmor = tp.classArmorMap.get(className);
-		if(!classItems.isEmpty())
-			TCUtils.giveItems(p, classItems);
-		if(!classArmor.isEmpty())
-			TCUtils.equipArmor(p, classArmor);
 	}
     
     /* ///////////////////////////////////////////////////////////////////// //

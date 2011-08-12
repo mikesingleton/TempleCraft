@@ -36,7 +36,7 @@ public class TempleCraft extends JavaPlugin
                                       		"new", "edit", "save", "reload"};
     private Logger log;
     public List<String> DISABLED_COMMANDS;
-    public iConomy iConomy = null;
+    public static iConomy iConomy = null;
     public static PermissionHandler permissionHandler;
     public static String fileExtention = ".tcf";
     
@@ -100,9 +100,7 @@ public class TempleCraft extends JavaPlugin
     public void onDisable()
     {    
     	permissionHandler = null;
-    	if(TempleManager.world != null)
-    		TempleManager.clearWorld(TempleManager.world);
-        TempleManager.forceEnd(null);
+        TempleManager.removePlayers();
     }
     
     private void setupPermissions() {

@@ -50,7 +50,7 @@ public class TCCommands implements CommandExecutor
     	if((cmd.equals("join") || cmd.equals("j")) && TCPermissionHandler.hasPermission(p, "templecraft.join"))
     	{
     		for(Temple temple : TempleManager.templeSet){
-    			if(!temple.isRunning && temple.isSetup){
+    			if(!temple.isRunning && temple.trySetup()){
     				temple.playerJoin(p);
     				return true;
     			}
@@ -83,16 +83,11 @@ public class TCCommands implements CommandExecutor
         {
     		Temple temple = tp.currentTemple;
     		
-    		if(temple == null){
-    			if(TCPermissionHandler.hasPermission(p, "templecraft.save"))
-        			tp.save();
-    		} else {
-    			if(TCPermissionHandler.hasPermission(p, "templecraft.savetemple")){
-    				if(p.getWorld().getName().contains("EditWorld_")){
-    					temple.saveTemple(p.getWorld(), p);
-    				}
-    			}
-    		}
+			if(TCPermissionHandler.hasPermission(p, "templecraft.savetemple")){
+				if(p.getWorld().getName().contains("EditWorld_")){
+					temple.saveTemple(p.getWorld(), p);
+				}
+			}
             return true;
         }
     	
@@ -107,7 +102,7 @@ public class TCCommands implements CommandExecutor
     				return true;
     			}
     		}
-    		TempleManager.loadCustomTemples();
+    		TempleManager.reloadTemples();
     		TempleManager.tellPlayer(p, "Temples Reloaded");
             return true;
         }
@@ -115,6 +110,8 @@ public class TCCommands implements CommandExecutor
         if ((cmd.equals("playerlist") || cmd.equals("plist")) && TCPermissionHandler.hasPermission(p, "templecraft.playerlist"))
         {
         	if(TempleManager.playerSet.contains(p))
+        		tp.currentTemple.playerList(p);
+        	else
         		TempleManager.playerList(p);
             return true;
         }
@@ -130,17 +127,11 @@ public class TCCommands implements CommandExecutor
         
         if ((cmd.equals("ready") || cmd.equals("notready"))  && TCPermissionHandler.hasPermission(p, "templecraft.ready"))
         {
-        	Temple temple = TCUtils.getTemple(p);
-        	if(temple == null)
-        		TempleManager.tellPlayer(p, "You need to be in a temple to use this command.");
-        	else if(temple.playerSet.contains(p))
+        	Temple temple = tp.currentTemple;
+        	if(temple != null && temple.playerSet.contains(p))
         		temple.notReadyList(p);
-            return true;
-        }
-        
-        if (cmd.equals("nullclass") && TCPermissionHandler.hasPermission(p, "templecraft.nullclass"))
-        {
-        	tp.removeClass();
+        	else
+        		TempleManager.notReadyList(p);
             return true;
         }
         
@@ -222,7 +213,7 @@ public class TCCommands implements CommandExecutor
     			TempleManager.tellPlayer(p, "Player not found.");
     		} else {
     			if(TCUtils.addAccessTo(playerName, temple))
-    				TempleManager.tellPlayer(p, "Added \""+playerName+"\" to temple.");
+    				TempleManager.tellPlayer(p, "Added \""+playerName+"\" to \""+temple.templeName+"\".");
     			else
     				TempleManager.tellPlayer(p, "\""+playerName+"\" already has access to this temple.");
     		}
@@ -250,9 +241,9 @@ public class TCCommands implements CommandExecutor
     			TempleManager.tellPlayer(p, "Player not found.");
     		} else {
     			if(TCUtils.removeAccessTo(playerName, temple))
-    				TempleManager.tellPlayer(p, "Removed \""+playerName+"\" from temple.");
+    				TempleManager.tellPlayer(p, "Removed \""+playerName+"\" \""+temple.templeName+"\".");
     			else
-    				TempleManager.tellPlayer(p, "\""+playerName+"\" does not have access to this temple.");
+    				TempleManager.tellPlayer(p, "\""+playerName+"\" does not have access \""+temple.templeName+"\".");
     		}
             return true;
         }

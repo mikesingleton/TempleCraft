@@ -31,10 +31,8 @@ public class TCMonsterListener extends EntityListener
      */
     public void onEntityExplode(EntityExplodeEvent event)
     {
-    	Temple temple = TCUtils.getTemple(event.getEntity());
-    	
-        if (temple == null)
-            return;
+    	if(!event.getLocation().getWorld().equals(TempleManager.world))
+    		return;
         
         // Only apply to creepers
         if(!(event.getEntity() instanceof LivingEntity)){
@@ -51,6 +49,11 @@ public class TCMonsterListener extends EntityListener
         	event.setYield(0);
         }
         
+    	Temple temple = TCUtils.getTemple(event.getEntity());
+    	
+        if (temple == null)
+            return;
+    	
         /* This could be done by simply cancelling the event, but that
          * also cancels the explosion animation. This is a workaround. */
         // Don't drop any blocks from the explosion.
@@ -102,9 +105,6 @@ public class TCMonsterListener extends EntityListener
                     }
                 }
             }, TempleManager.repairDelay);
-        
-        if(temple.expBuffer != null && !temple.expBuffer.isEmpty())
-       		TCUtils.addXP(event.getEntity(), temple.expBuffer);
     }
     
     // Zombie/skeleton combustion from the sun.

@@ -34,19 +34,6 @@ public class TCLobbyListener extends PlayerListener
      */
     public void onPlayerDropItem(PlayerDropItemEvent event)
     {
-        Player p = event.getPlayer();
-        TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-        
-        if (tp.currentClass == null)
-            return;
-            
-        Temple temple = TCUtils.getTemple(p);
-        
-        if(temple != null && temple.playerSet.contains(p) && temple.isRunning)
-       		return;
-        
-        TempleManager.tellPlayer(p, "No sharing class items when not in play!");
-        event.setCancelled(true);
     }
     
     /**
@@ -81,15 +68,6 @@ public class TCLobbyListener extends PlayerListener
         TemplePlayer tp = TempleManager.templePlayerMap.get(p);
         
         Temple temple = tp.currentTemple;
-        Action a = event.getAction();
-        
-        // Check if player is trying to use an item.
-        if (tp.currentClass != null && (temple == null || !temple.isRunning) && ((a == Action.RIGHT_CLICK_AIR) || (a == Action.RIGHT_CLICK_BLOCK)))
-        {
-            event.setUseItemInHand(Result.DENY);
-            TempleManager.tellPlayer(p, "No using class items when not in play!");
-            event.setCancelled(true);
-        }
         
         if(temple == null)
         	return;
@@ -98,32 +76,24 @@ public class TCLobbyListener extends PlayerListener
         if (event.hasBlock() && temple.lobbyBlockSet.contains(event.getClickedBlock()))
         {
         	if(!temple.isRunning){
-	            if (tp.currentClass != null)
-	            {
-	                temple.tellPlayer(p, "You have been flagged as ready!");
-	                temple.playerReady(p);
-	            }
-	            else
-	            {
-	                temple.tellPlayer(p, "You must first pick a class!");
-	            }
+	            temple.tellPlayer(p, "You have been flagged as ready!");
+	            temple.playerReady(p);
         	} else {
         		Holdings balance = iConomy.getAccount(p.getName()).getHoldings();
-        		if(balance.hasEnough(temple.rejoinCost)){
-        			if (tp.currentClass != null)
-    	            {
-        				temple.readySet.add(p);
-        				p.teleport(temple.templeLoc);
-        				if(temple.rejoinCost > 0){
-        					String msg = ChatColor.GOLD + "" + temple.rejoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
-        					temple.tellPlayer(p, msg);
-        					balance.subtract(temple.rejoinCost);
-    	            	}
-    	            }
-        			else
-    	            {
-    	                temple.tellPlayer(p, "You must first pick a class!");
-    	            }
+        		if(TempleCraft.iConomy == null || balance.hasEnough(temple.rejoinCost)){
+    				temple.readySet.add(p);
+    				if(tp.currentCheckpoint != null)
+    					p.teleport(tp.currentCheckpoint);
+    				else
+    					p.teleport(temple.templeLoc);
+    				if(TCUtils.hasPlayerInventory(p.getName()))
+    					TCUtils.restorePlayerInventory(p);
+    				TCUtils.keepPlayerInventory(p);
+    				if(TempleCraft.iConomy != null && temple.rejoinCost > 0){
+    					String msg = ChatColor.GOLD + "" + temple.rejoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
+    					temple.tellPlayer(p, msg);
+    					balance.subtract(temple.rejoinCost);
+	            	}
         		} else {
         			TempleManager.tellPlayer(p, "You do not have enough gold to rejoin.");
         		}
