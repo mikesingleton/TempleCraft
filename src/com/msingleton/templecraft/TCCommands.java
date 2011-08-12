@@ -83,6 +83,9 @@ public class TCCommands implements CommandExecutor
         {
     		Temple temple = tp.currentTemple;
     		
+    		if(temple == null)
+    			TempleManager.tellPlayer(p, "You are not editing a temple.");
+    		
 			if(TCPermissionHandler.hasPermission(p, "templecraft.savetemple")){
 				if(p.getWorld().getName().contains("EditWorld_")){
 					temple.saveTemple(p.getWorld(), p);

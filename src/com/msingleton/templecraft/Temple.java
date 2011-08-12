@@ -124,13 +124,14 @@ public class Temple {
 			return;
 		}
 		
-		TempleManager.tellPlayer(p, "Saving...");
-		
 	    int x1 = (int)p1.getX();
 	    int z1 = (int)p1.getZ();
 	    int x2 = (int)p2.getX();
 	    int z2 = (int)p2.getZ();
 		
+	    TempleManager.tellPlayer(p, "Saving...");
+	    TempleManager.tellPlayer(p, "From ("+x1+",0,"+z1+") to ("+x2+",0,"+z2+")");
+	    
 		TCRestore.saveTemple(new Location(w, x1, 0, z1), new Location(w, x2, 128, z2), this);
 		TempleManager.tellPlayer(p, "Temple Saved");
 	}

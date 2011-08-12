@@ -160,10 +160,10 @@ public class TCRestore {
         	String[] s = preciousPatch.get(ep).split(c);
         	        	
         	int id = Integer.parseInt(s[0]);
+        	int y = (int)ep.getY()+startLoc.getBlockY();
         	
-       		if(blockSet.contains(id)){
+       		if(blockSet.contains(id) && id != getDefaultBlock(y)){
        			double x = ep.getX()+startLoc.getX();
-            	double y = ep.getY()+startLoc.getY();
             	double z = ep.getZ()+startLoc.getZ();
             	Location loc = new Location(world, x, y, z);
             	Block b = world.getBlockAt(loc);
@@ -176,7 +176,7 @@ public class TCRestore {
     					contentsFromString((ContainerBlock)b.getState(), s[2]);
     			}
     			addToTempleSets(temple, b);
-            	TCUtils.expandRegion(temple, loc);
+    			TCUtils.expandRegion(temple, loc);
         	}
         }
         
@@ -184,10 +184,10 @@ public class TCRestore {
         	String[] s = preciousPatch.get(ep).split(c);
         	
         	int id = Integer.parseInt(s[0]);
+        	int y = (int)ep.getY()+startLoc.getBlockY();
         	
-       		if(!blockSet.contains(id)){
+       		if(!blockSet.contains(id) && id != getDefaultBlock(y)){
        			double x = ep.getX()+startLoc.getX();
-            	double y = ep.getY()+startLoc.getY();
             	double z = ep.getZ()+startLoc.getZ();
             	Location loc = new Location(world, x, y, z);
             	Block b = world.getBlockAt(loc);
@@ -208,11 +208,27 @@ public class TCRestore {
             		}
             	}
     			addToTempleSets(temple, b);
-            	TCUtils.expandRegion(temple, loc);
+    			TCUtils.expandRegion(temple, loc);
         	}
         }
 	}
 
+	public static int getDefaultBlock(int y) {
+		int[] levels = TempleManager.landLevels;
+		byte[] mats = TempleManager.landMats;
+		for(int i = 0; i<levels.length; i++){
+			int bottom, top;
+			if(i == 0)
+				bottom = 0;
+			else
+				bottom = levels[i-1];
+			top = levels[i];
+			if(y >= bottom && y <= top)
+				return mats[i];
+		}
+		return 0;
+	}
+	
 	private static void addToTempleSets(Temple temple, Block b) {
 		if(b.getWorld().equals(TempleManager.world)){
 			for(int id : Temple.coordBlocks)

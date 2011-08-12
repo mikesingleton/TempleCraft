@@ -13,11 +13,10 @@ public class TempleWorldGenerator extends ChunkGenerator
 	int[] levels = TempleManager.landLevels;
 	byte[] mats = TempleManager.landMats;
     byte[] result = new byte[32768];
-    for (int x = 0; x < 16; x++) {
-      for (int z = 0; z < 16; z++) {
-    	int level = 0;
-        for (int y = 0; y < 128; y++)
-        {
+    int level = 0;
+    for (int y = 0; y < 128; y++){
+	   for (int x = 0; x < 16; x++) {
+	      for (int z = 0; z < 16; z++) {
         	byte out;
         	
         	if(level+1 >= levels.length){
@@ -28,7 +27,6 @@ public class TempleWorldGenerator extends ChunkGenerator
         		
         		out = mats[level];
         	}
-        	
         	
 	        result[((x * 16 + z) * 128 + y)] = out;
         }
