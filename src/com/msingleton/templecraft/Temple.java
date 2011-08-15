@@ -62,11 +62,12 @@ public class Temple {
                          dAngryWolves, dGiants, dGhasts;
     
     // Sets and Maps for storing players and their locations.
-    protected Set<String> ownerSet             = new HashSet<String>();
-    protected Set<String> accessorSet          = new HashSet<String>();
-    protected Set<Player> playerSet            = new HashSet<Player>();
-    protected Set<Player> editorSet            = new HashSet<Player>();
-    protected Set<Player> readySet             = new HashSet<Player>();
+    protected Set<String> ownerSet    = new HashSet<String>();
+    protected Set<String> accessorSet = new HashSet<String>();
+    protected Set<Player> playerSet   = new HashSet<Player>();
+    protected Set<Player> editorSet   = new HashSet<Player>();
+    protected Set<Player> readySet    = new HashSet<Player>();
+    protected Set<Player> deadSet     = new HashSet<Player>();
     //protected Map<Player,String> rewardMap     = new HashMap<Player,String>();
     
     // Maps for rewards.
@@ -293,6 +294,7 @@ public class Temple {
 		isRunning = true;
 		
 		convertSpawnpoints();
+		readySet.clear();
 		for (Player p : playerSet)
 		{
 		    p.teleport(templeLoc);
@@ -440,7 +442,7 @@ public class Temple {
 			TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 			if(tp == null)
 				return;
-			if(tp.currentTemple == this)
+			if(tp.currentTemple != null && tp.currentTemple == this)
 				TempleManager.playerLeave(p);
 		}
 	}
@@ -581,7 +583,7 @@ public class Temple {
 			tellPlayer(player, msg);
 		}
 		
-		readySet.remove(p);
+		deadSet.add(p);
 		MobArenaClasses.classMap.remove(p);
 		tp.tempSet.clear();
 		tp.roundDeaths++;

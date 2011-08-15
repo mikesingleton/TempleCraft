@@ -221,6 +221,7 @@ public class TempleManager
     		return;
     	
 		tp.currentTemple = null;
+		tp.currentCheckpoint = null;
 		playerSet.remove(p);
 		MobArenaClasses.classMap.remove(p);
 		
@@ -230,7 +231,7 @@ public class TempleManager
 		
 			tp.displayStats();
 			
-			if (temple.isRunning && playerSet.isEmpty())
+			if (temple.isRunning && temple.playerSet.isEmpty())
 				temple.endTemple();
 		}
 		
@@ -239,7 +240,7 @@ public class TempleManager
 				TempleManager.templeEditMap.remove(temple.templeName);
 		
 		if(temple.readySet.remove(p))
-			if (!temple.readySet.isEmpty() && temple.readySet.equals(playerSet))
+			if (temple.readySet.isEmpty() && temple.deadSet.isEmpty() && temple.readySet.equals(playerSet) && !temple.isRunning)
 				temple.startTemple();
 		
 		if(locationMap.containsKey(p)){

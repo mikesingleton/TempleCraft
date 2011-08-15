@@ -82,7 +82,7 @@ public class TCLobbyListener extends PlayerListener
 	        	} else {
 	        		Holdings balance = iConomy.getAccount(p.getName()).getHoldings();
 	        		if(TempleCraft.iConomy == null || balance.hasEnough(temple.rejoinCost)){
-	    				temple.readySet.add(p);
+	    				temple.deadSet.remove(p);
 	    				if(tp.currentCheckpoint != null)
 	    					p.teleport(tp.currentCheckpoint);
 	    				else
