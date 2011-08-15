@@ -28,6 +28,8 @@ public class TCDisconnectListener extends PlayerListener
 			TCUtils.restorePlayerInventory(p);
 		if (TempleManager.playerSet.contains(p))
 			TempleManager.playerLeave(p);
+		if(TempleManager.locationMap.containsKey(p))
+			p.teleport(TempleManager.locationMap.get(p));
     }
     
     public void onPlayerKick(PlayerKickEvent event)
@@ -41,6 +43,8 @@ public class TCDisconnectListener extends PlayerListener
 			TCUtils.restorePlayerInventory(p);
 		if (TempleManager.playerSet.contains(p))
 			TempleManager.playerLeave(p);
+		if(TempleManager.locationMap.containsKey(p))
+			p.teleport(TempleManager.locationMap.get(p));
     }
 
 	public void onPlayerJoin(PlayerJoinEvent event)

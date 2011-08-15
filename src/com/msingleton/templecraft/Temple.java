@@ -424,7 +424,7 @@ public class Temple {
 	protected void endTemple()
 	{
 		isRunning = false;
-		
+		readySet.clear();
 		removePlayers();
 		killMonsters();
 		repairTemple();
