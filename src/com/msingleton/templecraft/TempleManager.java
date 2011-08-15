@@ -220,6 +220,7 @@ public class TempleManager
     	if(temple == null)
     		return;
     	
+    	p.setFireTicks(0);
 		tp.currentTemple = null;
 		tp.currentCheckpoint = null;
 		playerSet.remove(p);
@@ -232,11 +233,12 @@ public class TempleManager
 		if(temple.editorSet.isEmpty())
 			TempleManager.templeEditMap.remove(temple.templeName);
 		
-		if (temple.readySet.equals(playerSet))
-			if(!temple.isRunning)
+		if (temple.readySet.equals(playerSet)){
+			if(!temple.isRunning && !temple.readySet.isEmpty() && !temple.playerSet.isEmpty())
 				temple.startTemple();
 			else if(temple.isRunning)
 				temple.endTemple();
+		}
 			
 		if(TCUtils.hasPlayerInventory(p.getName()))
 			TCUtils.restorePlayerInventory(p);

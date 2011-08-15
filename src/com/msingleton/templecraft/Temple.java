@@ -149,11 +149,12 @@ public class Temple {
 	
 	protected void loadTemple(World w){
 		if(w.equals(world)){
-			clearTemple();
 			if(startLoc == null)
 				startLoc = getFreeLocation();
 			TCRestore.loadTemple(startLoc, this);
 		} else {
+			p1 = null;
+			p2 = null;
 			TCRestore.loadTemple(new Location(w,0,0,0), this);
 		}
 	}
@@ -178,12 +179,12 @@ public class Temple {
 		
 		World world = startLoc.getWorld();
 		
-		int x1 = startLoc.getBlockX() + p1.getBlockX();
-		int x2 = startLoc.getBlockX() + p2.getBlockX();
+		int x1 = startLoc.getBlockX();
+		int x2 = x1 + (p2.getBlockX() - p1.getBlockX());
 		int y1 = 0;
 		int y2 = 128;
-		int z1 = startLoc.getBlockZ() + p1.getBlockZ();
-		int z2 = startLoc.getBlockZ() + p2.getBlockZ();
+		int z1 = startLoc.getBlockZ();
+		int z2 = z1 + (p2.getBlockZ() - p1.getBlockZ());
 		int level = 0;
 		
 		System.out.println("Clearing Foundation from ("+x1+","+z1+") to ("+x2+","+z2+")");
