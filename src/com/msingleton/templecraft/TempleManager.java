@@ -225,23 +225,23 @@ public class TempleManager
 		playerSet.remove(p);
 		MobArenaClasses.classMap.remove(p);
 		
-		if(temple.playerSet.remove(p)){			
-			if(TCUtils.hasPlayerInventory(p.getName()))
-				TCUtils.restorePlayerInventory(p);
+		temple.readySet.remove(p);
+		temple.playerSet.remove(p);
+		temple.editorSet.remove(p);
 		
-			tp.displayStats();
-			
-			if (temple.isRunning && temple.playerSet.isEmpty())
-				temple.endTemple();
-		}
+		if(temple.editorSet.isEmpty())
+			TempleManager.templeEditMap.remove(temple.templeName);
 		
-		if(temple.editorSet.remove(p))
-			if(temple.editorSet.isEmpty())
-				TempleManager.templeEditMap.remove(temple.templeName);
-		
-		if(temple.readySet.remove(p))
-			if (temple.readySet.isEmpty() && temple.deadSet.isEmpty() && temple.readySet.equals(playerSet) && !temple.isRunning)
+		if (temple.readySet.equals(playerSet))
+			if(!temple.isRunning)
 				temple.startTemple();
+			else if(temple.isRunning)
+				temple.endTemple();
+			
+		if(TCUtils.hasPlayerInventory(p.getName()))
+			TCUtils.restorePlayerInventory(p);
+	
+		tp.displayStats();
 		
 		if(locationMap.containsKey(p)){
 			p.teleport(locationMap.get(p));

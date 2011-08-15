@@ -60,7 +60,7 @@ public class TCDamageListener extends EntityListener
     	if (event.getEntity() instanceof Player){
     		Player p = (Player)event.getEntity();
     		Temple temple = TempleManager.templePlayerMap.get(p).currentTemple;
-    		if(temple != null && !temple.readySet.contains(p)){
+    		if(temple != null && temple.deadSet.contains(p)){
     			p.setFireTicks(0);
     			return;
     		}
