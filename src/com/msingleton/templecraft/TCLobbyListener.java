@@ -75,32 +75,39 @@ public class TCLobbyListener extends PlayerListener
         // Iron block
         if (event.hasBlock() && temple.lobbyBlockSet.contains(event.getClickedBlock()))
         {
-        	if(!temple.isRunning){
-	            temple.tellPlayer(p, "You have been flagged as ready!");
-	            temple.playerReady(p);
+        	if(!temple.usingClasses || MobArenaClasses.classMap.containsKey(p)){
+	        	if(!temple.isRunning){
+		            temple.tellPlayer(p, "You have been flagged as ready!");
+		            temple.playerReady(p);
+	        	} else {
+	        		Holdings balance = iConomy.getAccount(p.getName()).getHoldings();
+	        		if(TempleCraft.iConomy == null || balance.hasEnough(temple.rejoinCost)){
+	    				temple.readySet.add(p);
+	    				if(tp.currentCheckpoint != null)
+	    					p.teleport(tp.currentCheckpoint);
+	    				else
+	    					p.teleport(temple.templeLoc);
+	    				
+	    				if(!temple.usingClasses){
+		    				if(TCUtils.hasPlayerInventory(p.getName()))
+		    					TCUtils.restorePlayerInventory(p);
+		    				TCUtils.keepPlayerInventory(p);
+		    				p.setHealth(20);
+	    				}
+	    				
+	    				// If iConomy is installed, subtract money from account
+	    				if(TempleCraft.iConomy != null && temple.rejoinCost > 0){
+	    					String msg = ChatColor.GOLD + "" + temple.rejoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
+	    					temple.tellPlayer(p, msg);
+	    					balance.subtract(temple.rejoinCost);
+		            	}
+	        		} else {
+	        			TempleManager.tellPlayer(p, "You do not have enough gold to rejoin.");
+	        		}
+	        	}
         	} else {
-        		Holdings balance = iConomy.getAccount(p.getName()).getHoldings();
-        		if(TempleCraft.iConomy == null || balance.hasEnough(temple.rejoinCost)){
-    				temple.readySet.add(p);
-    				if(tp.currentCheckpoint != null)
-    					p.teleport(tp.currentCheckpoint);
-    				else
-    					p.teleport(temple.templeLoc);
-    				if(TCUtils.hasPlayerInventory(p.getName()))
-    					TCUtils.restorePlayerInventory(p);
-    				TCUtils.keepPlayerInventory(p);
-    				if(TempleCraft.iConomy != null && temple.rejoinCost > 0){
-    					String msg = ChatColor.GOLD + "" + temple.rejoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
-    					temple.tellPlayer(p, msg);
-    					balance.subtract(temple.rejoinCost);
-	            	}
-        		} else {
-        			TempleManager.tellPlayer(p, "You do not have enough gold to rejoin.");
-        		}
+        		temple.tellPlayer(p, "You must pick a class first!");
         	}
-            return;
         }
-        
-        // Sign is handled by playerListener
     }
 }

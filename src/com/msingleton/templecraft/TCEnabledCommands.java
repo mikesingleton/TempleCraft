@@ -7,11 +7,11 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 /**
  * Handles the disabled commands.
  */
-public class TCDisabledCommands extends PlayerListener
+public class TCEnabledCommands extends PlayerListener
 {
     private TempleCraft plugin;
     
-    public TCDisabledCommands(TempleCraft instance)
+    public TCEnabledCommands(TempleCraft instance)
     {
         plugin = instance;
     }
@@ -19,17 +19,24 @@ public class TCDisabledCommands extends PlayerListener
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
         Player p = event.getPlayer();
+        TemplePlayer tp = TempleManager.templePlayerMap.get(p);
         
         if (!TempleManager.playerSet.contains(p))
             return;
         
-        String[] args = event.getMessage().split(" ");
+        String msg = event.getMessage();
+        String[] args = msg.split(" ");
         
-        if (!plugin.DISABLED_COMMANDS.contains(event.getMessage().substring(1).trim()) &&
-            !plugin.DISABLED_COMMANDS.contains(args[0]))
+        if(!tp.tempSet.isEmpty() && tp.tempSet.contains(msg)){
+        	tp.tempSet.remove(msg);
+        	return;
+        }
+        
+        if (plugin.ENABLED_COMMANDS.contains(msg.trim()) || 
+        	plugin.ENABLED_COMMANDS.contains(args[0]))
             return;
         
         event.setCancelled(true);
-        TempleManager.tellPlayer(p, "You can't use that command in the arena!");
+        TempleManager.tellPlayer(p, "You can't use that command in the temple!");
     }
 }

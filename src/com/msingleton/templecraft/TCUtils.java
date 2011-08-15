@@ -161,13 +161,13 @@ public class TCUtils
         return new Configuration(configFile);
     }
     
-    public static List<String> getDisabledCommands()
+    public static List<String> getEnabledCommands()
     {
         Configuration c = TempleManager.config;
         c.load();
         
-        String commands = c.getString("settings.disabledcommands", "/kill");
-        c.setProperty("settings.disabledcommands", commands);
+        String commands = c.getString("settings.enabledcommands", "/tc leave");
+        c.setProperty("settings.enabledcommands", commands);
         c.save();
         
         List<String> result = new LinkedList<String>();
@@ -219,55 +219,6 @@ public class TCUtils
         
         return result;
 	}
-
-	/**
-     * Grabs the list of classes from the config-file. If no list is
-     * found, generate a set of default classes.
-     */
-    public static List<String> getClasses()
-    {
-        Configuration c = TempleManager.config;
-        c.load();
-        
-        if (c.getKeys("classes") == null)
-        {
-        	/* Swords
-        	 * Wood:   268
-        	 * Stone:  272
-        	 * Iron:   267
-        	 * Gold:   283
-        	 * Diamond:276
-        	 * 268,272,267,283,276
-        	 * 
-        	 * Armor
-        	 * Leather:   298,299,300,301
-        	 * Chainmail: 302,303,304,305
-        	 * Iron:      306,307,308,309
-        	 * Gold:      314,315,316,317
-        	 * Diamond:   310,311,312,313
-        	 */
-        	c.setProperty("classes.Knight.items",   "wood_sword");
-            c.setProperty("classes.Knight.armor",   "");
-            c.setProperty("classes.Knight.enabled", "298,299,300,301,306,307,308,309,314,315,316,317,"+"268,272,267,283,276,"+"320");
-            c.setProperty("classes.Archer.items",   "wood_sword");
-            c.setProperty("classes.Archer.armor",   "");
-            c.setProperty("classes.Archer.enabled", "298,299,300,301,314,315,316,317,"+"268,272,267,"+"261,262");
-            c.setProperty("classes.Tank.items",     "wood_sword");
-            c.setProperty("classes.Tank.armor",     "");
-            c.setProperty("classes.Tank.enabled",   "298,299,300,301,306,307,308,309,314,315,316,317,310,311,312,313,"+"268,272,267,283"+"320");
-            c.setProperty("classes.Chef.items",     "wood_sword");
-            c.setProperty("classes.Chef.armor",     "");
-            c.setProperty("classes.Chef.enabled",   "298,299,300,301,314,315,316,317,306,307,308,309"+"268,272,267,283,"+"297,320,354,357,322");
-            //c.setProperty("classes.Mage.items",     "wood_sword, book");
-            //c.setProperty("classes.Mage.armor",     "");
-            //c.setProperty("classes.Mage.enabled",   "298,299,300,301,314,315,316,317,"+"268,272,267");
-            //c.setProperty("classes.Mage.specialTraits", "magic");
-            
-            c.save();
-        }
-        
-        return c.getKeys("classes");
-    }
     
     /**
      * Grabs an int from the config-file.
@@ -287,8 +238,8 @@ public class TCUtils
     /**
      * Grabs a string from the config-file.
      */
-	public static String getString(String path, String def) {
-		Configuration c = TempleManager.config;
+	public static String getString(Configuration config, String path, String def) {
+		Configuration c = config;
         c.load();
         
         String result = c.getString(path, def);
@@ -575,7 +526,7 @@ public class TCUtils
 		Temple temple = TCUtils.getTempleByName(templeName);
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		
-		if(tp.ownerOfSet.size() >= TempleManager.maxTemplesPerPerson && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
+		if(tp.ownedTemples >= TempleManager.maxTemplesPerPerson && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
 			TempleManager.tellPlayer(p, "You already own the maximum amount of Temples allowed.");
 			return;
 		}
@@ -598,17 +549,13 @@ public class TCUtils
 		}
 		
     	temple = new Temple(templeName);
-    	tp.addOwnerOf(templeName);
-    	tp.addAccessTo(templeName);
+    	tp.ownedTemples++;
+    	temple.addOwner(p.getName());
 		
 		World EditWorld = TCUtils.getEditWorld(p, temple);
 		
 		if(EditWorld == null)
 			return;
-		
-		TempleManager.clearWorld(EditWorld);
-		EditWorld.setTime(8000);
-		EditWorld.setStorm(false);
 		
     	editTemple(p, temple);
 	}
@@ -616,7 +563,7 @@ public class TCUtils
 	public static void editTemple(Player p, Temple temple) {		
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		
-		if(!tp.accessToSet.contains(temple.templeName) && !tp.ownerOfSet.contains(temple.templeName) && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
+		if(!temple.accessorSet.contains(p.getName()) && !temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
 			TempleManager.tellPlayer(p, "You do not have permission to edit this temple.");
 			return;
 		}
@@ -626,83 +573,28 @@ public class TCUtils
 			return;
 		}
 		
-		World EditWorld = TCUtils.getEditWorld(p, temple);
+		World EditWorld = getEditWorld(p, temple);
 		
 		if(EditWorld == null)
 			return;
 		
+		TempleManager.clearWorld(EditWorld);
+		
 		if(temple.editorSet.isEmpty()){
-			TempleManager.clearWorld(EditWorld);
 			EditWorld.setTime(8000);
 			EditWorld.setStorm(false);
 			temple.loadTemple(EditWorld);
 		}
 		temple.editorSet.add(p);
 		tp.currentTemple = temple;
+		if(!TCUtils.hasPlayerInventory(p.getName()))
+			TCUtils.keepPlayerInventory(p);
 		if(!TempleManager.locationMap.containsKey(p))
 			TempleManager.locationMap.put(p, p.getLocation());
-		teleportToWorld(EditWorld, p);
+		teleportToWorld(EditWorld, temple, p);
 	}
 	
-	public static boolean addAccessTo(String playerName, Temple temple){
-		Player playerToAdd = TCUtils.getPlayerByName(playerName);
-		//if player is not online
-		if(playerToAdd == null){
-			Configuration c = TemplePlayer.config;
-			c.load();
-			String s = c.getString("Players."+playerName+".Temples.accessTo", "");
-			if(s.equals("")){
-				c.setProperty("Players."+playerName+".Temples.accessTo", temple.templeName);
-				return true;
-			} else if(!s.contains(temple.templeName)){
-				c.setProperty("Players."+playerName+".Temples.accessTo", s + "," + temple.templeName);
-				c.save();
-				return true;
-			}
-		} else {
-			TemplePlayer tp = TempleManager.templePlayerMap.get(playerToAdd);
-			if(!tp.accessToSet.contains(temple.templeName)){
-				tp.addAccessTo(temple.templeName);
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	// Removes a player's access to a temple
-	
-	public static boolean removeAccessTo(String playerName, Temple temple){
-		Player playerToRemove = TCUtils.getPlayerByName(playerName);
-		//if player is offline
-		if(playerToRemove == null){
-			Configuration c = TemplePlayer.config;
-			c.load();
-			String s = c.getString("Players."+playerName+".Temples.accessTo", "");
-			if(s.contains(temple.templeName)){
-				c.setProperty("Players."+playerName+".Temples.accessTo", s.replace(temple.templeName, ""));
-				c.save();
-				return true;
-			}
-		} else {
-			TemplePlayer tp = TempleManager.templePlayerMap.get(playerToRemove);
-			if(tp.accessToSet.contains(temple.templeName)){
-				tp.removeAccessTo(temple.templeName);
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public static String getKey(Configuration c, String path, String key){
-		c.load();
-		if(c.getKeys(path) != null)
-			for(String result : c.getKeys(path))
-				if(result.toLowerCase().contains(key.toLowerCase()))
-					return result;
-		return null;
-	}
-	
-	public static void teleportToWorld(World world, Player p){
+	public static void teleportToWorld(World world, Temple temple, Player p){
 		int[] levels = TempleManager.landLevels;
 		byte[] mats = TempleManager.landMats;
 		int ground = 128;
@@ -713,6 +605,9 @@ public class TCUtils
 			}
 		}
 
-		p.teleport(new Location(world, -1, ground, -1));
+		if(temple.p1 != null)
+			p.teleport(new Location(world, (temple.p1.getX()-1) , ground, (temple.p1.getZ())-1));
+		else
+			p.teleport(new Location(world, -1, ground, -1));
 	}
 }

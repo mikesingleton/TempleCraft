@@ -35,7 +35,7 @@ public class TempleCraft extends JavaPlugin
     										"spectate", "spec", "ready", "notready", "enable", "checkupdates", "forcestart", "forceend",
                                       		"new", "edit", "save", "reload"};
     private Logger log;
-    public List<String> DISABLED_COMMANDS;
+    public List<String> ENABLED_COMMANDS;
     public static iConomy iConomy = null;
     public static PermissionHandler permissionHandler;
     public static String fileExtention = ".tcf";
@@ -52,7 +52,7 @@ public class TempleCraft extends JavaPlugin
         setupPermissions();
         // Initialize convenience variables in ArenaManager.
         TempleManager.init(this);
-        DISABLED_COMMANDS = TCUtils.getDisabledCommands();
+        ENABLED_COMMANDS = TCUtils.getEnabledCommands();
         
         // Bind the /tc and /tcraft commands to MACommands.
     	getCommand("tc").setExecutor(new TCCommands());
@@ -60,9 +60,10 @@ public class TempleCraft extends JavaPlugin
     	// Create event listeners.
         PluginManager pm = getServer().getPluginManager();
     	
-        PlayerListener commandListener  = new TCDisabledCommands(this);
+        PlayerListener commandListener  = new TCEnabledCommands(this);
         PlayerListener lobbyListener    = new TCLobbyListener(this);
         PlayerListener playerListener   = new TCPlayerListener(this);
+        PlayerListener maListener       = new MobArenaClasses(this);
         PlayerListener discListener     = new TCDisconnectListener(this);
         BlockListener  blockListener    = new TCBlockListener(this);
         EntityListener damageListener   = new TCDamageListener(this);
@@ -79,6 +80,7 @@ public class TempleCraft extends JavaPlugin
         pm.registerEvent(Event.Type.PLAYER_BUCKET_EMPTY, lobbyListener, Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_MOVE,      playerListener,   Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_INTERACT,  playerListener,   Priority.Normal,  this);
+        pm.registerEvent(Event.Type.PLAYER_INTERACT,  maListener,       Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_QUIT,      discListener,     Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_KICK,      discListener,     Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_JOIN,      discListener,     Priority.Normal,  this);
@@ -100,7 +102,7 @@ public class TempleCraft extends JavaPlugin
     public void onDisable()
     {    
     	permissionHandler = null;
-        TempleManager.removePlayers();
+        TempleManager.removeAll();
     }
     
     private void setupPermissions() {

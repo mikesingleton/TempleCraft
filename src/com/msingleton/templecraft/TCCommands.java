@@ -83,8 +83,10 @@ public class TCCommands implements CommandExecutor
         {
     		Temple temple = tp.currentTemple;
     		
-    		if(temple == null)
+    		if(temple == null || !p.getWorld().getName().contains("EditWorld_")){
     			TempleManager.tellPlayer(p, "You are not editing a temple.");
+    			return true;
+    		}
     		
 			if(TCPermissionHandler.hasPermission(p, "templecraft.savetemple")){
 				if(p.getWorld().getName().contains("EditWorld_")){
@@ -199,23 +201,28 @@ public class TCCommands implements CommandExecutor
         {        	
         	Temple temple = tp.currentTemple;
     		
-    		if(temple == null){
-    			TempleManager.tellPlayer(p, "You need to be in a temple to use this command.");
+    		if(temple == null || !temple.editorSet.contains(p)){
+    			TempleManager.tellPlayer(p, "You need to be editing a temple to use this command.");
     			return true;
     		}
         	
-    		if(!tp.ownerOfSet.contains(temple.templeName) && !TCPermissionHandler.hasPermission(p, "templecraft.editall")){
+    		if(!temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p, "templecraft.editall")){
     			TempleManager.tellPlayer(p, "Only the owner of the temple can use this command.");
     			return true;
     		}
     		
-    		//Find player in config based on what was entered;
-    		String playerName = TCUtils.getKey(TemplePlayer.config, "Players", arg);
+    		String playerName = null;
+    		for(Player player : TempleManager.server.getOnlinePlayers()){
+    			if(player.getName().toLowerCase().startsWith(arg)){
+    				playerName = player.getName();
+    				break;
+    			}
+    		}
     		
     		if(playerName == null){
     			TempleManager.tellPlayer(p, "Player not found.");
     		} else {
-    			if(TCUtils.addAccessTo(playerName, temple))
+    			if(temple.addEditor(playerName))
     				TempleManager.tellPlayer(p, "Added \""+playerName+"\" to \""+temple.templeName+"\".");
     			else
     				TempleManager.tellPlayer(p, "\""+playerName+"\" already has access to this temple.");
@@ -227,24 +234,29 @@ public class TCCommands implements CommandExecutor
         {        	
         	Temple temple = tp.currentTemple;
     		
-    		if(temple == null){
-    			TempleManager.tellPlayer(p, "You need to be in a temple to use this command.");
+    		if(temple == null || !temple.editorSet.contains(p)){
+    			TempleManager.tellPlayer(p, "You need to be editing a temple to use this command.");
     			return true;
     		}
         	
-    		if(!tp.ownerOfSet.contains(temple.templeName) && !TCPermissionHandler.hasPermission(p, "templecraft.editall")){
+    		if(!temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p, "templecraft.editall")){
     			TempleManager.tellPlayer(p, "Only the owner of the temple can use this command.");
     			return true;
     		}
     		
-    		//Find player in config based on what was entered;
-    		String playerName = TCUtils.getKey(TemplePlayer.config, "Players", arg);
+    		String playerName = null;
+    		for(Player player : TempleManager.server.getOnlinePlayers()){
+    			if(player.getName().toLowerCase().startsWith(arg)){
+    				playerName = player.getName();
+    				break;
+    			}
+    		}
     		
     		if(playerName == null){
     			TempleManager.tellPlayer(p, "Player not found.");
     		} else {
-    			if(TCUtils.removeAccessTo(playerName, temple))
-    				TempleManager.tellPlayer(p, "Removed \""+playerName+"\" \""+temple.templeName+"\".");
+    			if(temple.removeEditor(playerName))
+    				TempleManager.tellPlayer(p, "Removed \""+playerName+"\" from \""+temple.templeName+"\".");
     			else
     				TempleManager.tellPlayer(p, "\""+playerName+"\" does not have access \""+temple.templeName+"\".");
     		}

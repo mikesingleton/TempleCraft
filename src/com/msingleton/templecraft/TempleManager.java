@@ -83,8 +83,8 @@ public class TempleManager
             maxEditWorlds          = TCUtils.getInt("settings.maxeditworlds", 2);
             maxTemplesPerPerson    = TCUtils.getInt("settings.maxtemplesperperson", 1);
             rejoinCost             = TCUtils.getInt("settings.rejoincost", 0);
-            breakableMats          = TCUtils.getString("settings.breakablemats", "46,82");
-            goldPerMob             = TCUtils.getString("settings.goldpermob", "50-100");
+            breakableMats          = TCUtils.getString(config, "settings.breakablemats", "46,82");
+            goldPerMob             = TCUtils.getString(config, "settings.goldpermob", "50-100");
             dropBlocks             = TCUtils.getBoolean("settings.dropblocks", false);
             
         	worldEdit              = TempleCraft.getWorldEdit();
@@ -121,11 +121,8 @@ public class TempleManager
     
     public static void reloadTemples() {
     	clearWorld(world);
-    	for(Temple temple : templeSet){
+    	for(Temple temple : templeSet)
     		temple.clearTemple();
-    		temple.p1 = null;
-    		temple.p2 = null;
-    	}
     	for(Temple temple : templeSet)
     		temple.loadTemple(world);
     }
@@ -193,16 +190,21 @@ public class TempleManager
 			temple.notReadyList(p);
 	}
     
-    public static void removePlayers() {
+    public static void removeAll() {
 		for(Temple temple : templeSet)
-			temple.removePlayers();
+			temple.removeAll();
 	}
     
     public static void clearWorld(World world) {
-    	for(Chunk chunk : world.getLoadedChunks()){
-			world.regenerateChunk(chunk.getX(), chunk.getZ());
-    	}
+    	for(Chunk c : world.getLoadedChunks())
+    		world.regenerateChunk(c.getX(), c.getZ());
 	}
+    
+    /*public static void clearTempleWorld(World world) {
+    	for(Temple temple : templeSet)
+    		if(temple.startLoc != null)
+    			temple.clearFoundation(temple.startLoc);
+	}*/
     
     /**
 	* Attempts to remove a player from the Temple session.
@@ -220,12 +222,12 @@ public class TempleManager
     	
 		tp.currentTemple = null;
 		playerSet.remove(p);
+		MobArenaClasses.classMap.remove(p);
 		
 		if(temple.playerSet.remove(p)){			
 			if(TCUtils.hasPlayerInventory(p.getName()))
 				TCUtils.restorePlayerInventory(p);
 		
-			tp.saveData();
 			tp.displayStats();
 			
 			if (temple.isRunning && playerSet.isEmpty())

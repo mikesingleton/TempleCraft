@@ -6,9 +6,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Sign;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.CreatureType;
 import org.bukkit.entity.LivingEntity;
@@ -56,6 +58,32 @@ public class TCPlayerListener  extends PlayerListener{
 			}
 		}
 		
+		for(Location loc : temple.chatMap.keySet()){
+			if(tp.tempSet.contains(loc))
+				continue;
+			
+			String[] msg = temple.chatMap.get(loc);
+			int range;
+			String s;
+			try{
+				range = Integer.parseInt(msg[1]);
+				s = msg[0];
+			}catch(Exception e){
+				range = 5;
+				s = msg[0]+msg[1];
+			}
+			
+			if(TCUtils.distance(loc, p.getLocation()) < range){
+				if(msg[0].startsWith("/")){
+					tp.tempSet.add(s);
+					p.chat(s);
+				} else {
+					p.sendMessage(ChatColor.DARK_AQUA+"Message: "+ChatColor.WHITE+s);
+				}
+				tp.tempSet.add(loc);
+			}
+		}
+		
 		Set<Location> tempLocs = new HashSet<Location>();
 		for(Location loc : temple.mobSpawnpointMap.keySet()){
 			if(TCUtils.distance(loc, p.getLocation()) < 20){
@@ -65,7 +93,7 @@ public class TCPlayerListener  extends PlayerListener{
 		for(Location loc : tempLocs)
 			temple.SpawnMobs(loc, temple.mobSpawnpointMap.remove(loc));
     }
-
+	
 	 public void onPlayerInteract(PlayerInteractEvent event){    
 		 
 		 if(!TempleManager.isEnabled)

@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.Chunk;
@@ -14,6 +15,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.ContainerBlock;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
@@ -21,7 +23,7 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.Door;
+import org.bukkit.material.PistonBaseMaterial;
 
 public class TCRestore {
 	//Blocks
@@ -52,27 +54,29 @@ public class TCRestore {
 	            for (int k = z1; k <= z2; k++)
 	            {
 	            	Block b = world.getBlockAt(i,j,k);
+	            	byte data = b.getData();
+	            	int typeId = b.getTypeId();
 	            	boolean push = true;
 	            	if(TempleManager.landLevels[level] < j)
 	            		level++;
-	            	if(b.getTypeId() == TempleManager.landMats[level]){
+	            	if(typeId == TempleManager.landMats[level]){
 	           			continue;
 	            		// Save chest and furnace and dispenser inventories
 	            	} else if(b.getState() instanceof ContainerBlock){
 	            		if(!contentsToString((ContainerBlock)b.getState()).replace(" ", "").isEmpty()){
-	            			id = b.getTypeId()+c+b.getData() + c + contentsToString((ContainerBlock)b.getState());	
+	            			id = typeId+c+data + c + contentsToString((ContainerBlock)b.getState());	
 	            		} else {
-	            			id = b.getTypeId()+c+b.getData();
+	            			id = typeId+c+data;
 	            		}
-	            		// Don't save the top halves of doors
-	            	} else if((b.getTypeId() == 71 || b.getTypeId() == 64) && b.getData() > 7) {
+	            	// Don't save the top halves of doors
+	            	} else if((typeId == 71 || typeId == 64) && data > 7) {
            				push = false;
             			// Save sign messages
-	            	} else if(b.getTypeId() == 68 || b.getTypeId() == 63){
+	            	} else if(typeId == 68 || typeId == 63){
 	            		Sign sign = (Sign) b.getState();
-	            		id = b.getTypeId()+c+b.getData() + c + sign.getLine(0) + c + sign.getLine(1) + c + sign.getLine(2) + c + sign.getLine(3);
+	            		id = typeId+c+data + c + sign.getLine(0) + c + sign.getLine(1) + c + sign.getLine(2) + c + sign.getLine(3);
 	            	} else {
-	            		id = b.getTypeId()+c+b.getData();
+	            		id = typeId+c+data;
 	            	}
 	            	if(push){
 	            		lo = world.getBlockAt(i-x1,j-y1,k-z1).getLocation();
@@ -129,9 +133,7 @@ public class TCRestore {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void loadTemple(Location startLoc, Temple temple){
-		World world = startLoc.getWorld();
-		
+	public static void loadTemple(Location startLoc, Temple temple){		
 		String fileName = temple.templeName + TempleCraft.fileExtention;
 		
 		HashMap<EntityPosition,String> preciousPatch;
@@ -156,60 +158,69 @@ public class TCRestore {
 	    	}
         }
         
-        for (EntityPosition ep : preciousPatch.keySet()){        	
-        	String[] s = preciousPatch.get(ep).split(c);
-        	        	
-        	int id = Integer.parseInt(s[0]);
-        	int y = (int)ep.getY()+startLoc.getBlockY();
-        	
-       		if(blockSet.contains(id) && id != getDefaultBlock(y)){
-       			double x = ep.getX()+startLoc.getX();
-            	double z = ep.getZ()+startLoc.getZ();
-            	Location loc = new Location(world, x, y, z);
-            	Block b = world.getBlockAt(loc);
-            	
-            	byte data = Byte.parseByte(s[1]);
-            	
-    			b.setTypeIdAndData(id, data, true);
-    			if(b.getState() instanceof ContainerBlock){
-    				if(s.length > 2)
-    					contentsFromString((ContainerBlock)b.getState(), s[2]);
-    			}
-    			addToTempleSets(temple, b);
-    			TCUtils.expandRegion(temple, loc);
+        Set<EntityPosition> ppKeySet = new HashSet<EntityPosition>();
+        ppKeySet.addAll(preciousPatch.keySet());
+        
+        Map<EntityPosition, String> blockMap = new HashMap<EntityPosition, String>();
+        Map<EntityPosition, String> nonBlockMap = new HashMap<EntityPosition, String>();
+        Map<EntityPosition, String> pistonMap = new HashMap<EntityPosition, String>();
+        for (EntityPosition ep : ppKeySet){
+        	int id = Integer.parseInt(preciousPatch.get(ep).split(c)[0]);
+        	int y = (int)(startLoc.getY()+ep.getY());
+        	if(id == getDefaultBlock(y)){
+        		preciousPatch.remove(ep);
+        	} else if(!blockSet.contains(id) && id != 29 && id!=33 && id != 34){
+        		nonBlockMap.put(ep, preciousPatch.remove(ep));
+        	} else if(blockSet.contains(id)){
+        		blockMap.put(ep, preciousPatch.remove(ep));
+        	} else {
+        		pistonMap.put(ep, preciousPatch.remove(ep));
         	}
         }
         
-        for (EntityPosition ep : preciousPatch.keySet()){        	
-        	String[] s = preciousPatch.get(ep).split(c);
+        loadBlockMap(startLoc, blockMap, temple, true);
+        loadBlockMap(startLoc, nonBlockMap, temple, true);
+        loadBlockMap(startLoc, pistonMap, temple, true);
+	}
+
+	
+	private static void loadBlockMap(Location startLoc, Map<EntityPosition, String> blockMap, Temple temple, Boolean physics) {
+		World world = startLoc.getWorld();
+		for (EntityPosition ep : blockMap.keySet()){        	
+        	String[] s = blockMap.get(ep).split(c);
         	
         	int id = Integer.parseInt(s[0]);
-        	int y = (int)ep.getY()+startLoc.getBlockY();
+        	byte data = Byte.parseByte(s[1]);
         	
-       		if(!blockSet.contains(id) && id != getDefaultBlock(y)){
-       			double x = ep.getX()+startLoc.getX();
-            	double z = ep.getZ()+startLoc.getZ();
-            	Location loc = new Location(world, x, y, z);
-            	Block b = world.getBlockAt(loc);
-            	
-            	byte data = Byte.parseByte(s[1]);
-            	
-    			b.setTypeIdAndData(id, data, true);
-    			if(b.getTypeId() == 71 || b.getTypeId() == 64){
-    				b.getRelative(0,1,0).setTypeIdAndData(b.getTypeId(),(byte) (b.getData()+8), true);
-    			} else if(b.getTypeId() == 68 || b.getTypeId() == 63){
-            		if(s.length > 2){
-            			for(int i = 2; i<s.length;i++){
-            				if((i-2)>3 || (i-2)<0 || s[i] == null)
-            					continue;
-            				Sign sign = (Sign) b.getState();
-            				sign.setLine((i-2), s[i]);
-            			}
-            		}
-            	}
-    			addToTempleSets(temple, b);
-    			TCUtils.expandRegion(temple, loc);
+       		double x = ep.getX()+startLoc.getX();
+       		double y = ep.getY()+startLoc.getBlockY();
+            double z = ep.getZ()+startLoc.getZ();
+            Location loc = new Location(world, x, y, z);
+           	Block b = world.getBlockAt(loc);
+           	b.setTypeIdAndData(id, data, physics);
+           	
+           	// If it's a door, add the upper half
+           	if(id == 71 || id == 64){
+				b.getRelative(0,1,0).setTypeIdAndData(id,(byte) (data+8), true);
+			// If it's a sign, add the text
+			} else if(b.getState() instanceof Sign){
+        		if(s.length > 2){
+        			for(int i = 2; i<s.length;i++){
+        				if((i-2)>3 || (i-2)<0 || s[i] == null)
+        					continue;
+        				Sign sign = (Sign) b.getState();
+        				sign.setLine((i-2), s[i]);
+        			}
+        		}
+        	// If it's a container, add it's contents
+        	} else if(b.getState() instanceof ContainerBlock){
+				if(s.length > 2)
+					contentsFromString((ContainerBlock)b.getState(), s[2]);
         	}
+
+			if(world.equals(TempleManager.world))
+				addToTempleSets(temple, b);
+			TCUtils.expandRegion(temple, loc);
         }
 	}
 

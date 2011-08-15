@@ -34,34 +34,40 @@ import com.iConomy.system.Holdings;
 
 
 public class Temple {
-    public World world;
-	
+    protected World world;
+	protected Configuration config = null;
+    
     // Convenience variables.
-    public String templeName     = null;
-    public Location templeLoc    = null;
-    public Location lobbyLoc     = null;
-    public Location spectatorLoc = null;
+    protected String templeName     = null;
+    protected Location templeLoc    = null;
+    protected Location lobbyLoc     = null;
+    protected Location spectatorLoc = null;
     protected boolean isRunning     = false;
     protected boolean isSetup       = false;
     protected boolean isEnabled     = true;
-    public int specialModulo, minLevel, templeWidth, templeHeight, templeDepth, roomWidth, roomHeight, roomLength;
-    public int TempleRooms, BossRooms, SpawnRooms, ItemRooms, Rooms; 
-    protected boolean lightning, explosionDamage;
+    protected boolean usingClasses  = false;
+    protected int specialModulo, minLevel, templeWidth, templeHeight, templeDepth, roomWidth, roomHeight, roomLength;
+    protected int TempleRooms, BossRooms, SpawnRooms, ItemRooms, Rooms; 
+    protected String owners               = "";
+    protected String editors              = "";
     
     // Location variables for the Temple region.
-    public Location p1 = null;
+    protected Location p1 = null;
     protected Location p2 = null;
+    protected Location startLoc = null;
     
     // Spawn locations list and monster distribution fields.
     protected int dZombies, dSkeletons, dSpiders, dCreepers, dWolves;
     protected int dPoweredCreepers, dPigZombies, dSlimes, dMonsters,
                          dAngryWolves, dGiants, dGhasts;
     
-    // Sets and Maps for storing players, their locations, and their rewards.
+    // Sets and Maps for storing players and their locations.
+    protected Set<String> ownerSet             = new HashSet<String>();
+    protected Set<String> accessorSet          = new HashSet<String>();
     protected Set<Player> playerSet            = new HashSet<Player>();
-    protected Set<Player> editorSet         = new HashSet<Player>();
+    protected Set<Player> editorSet            = new HashSet<Player>();
     protected Set<Player> readySet             = new HashSet<Player>();
-    protected Map<Player,String> rewardMap     = new HashMap<Player,String>();
+    //protected Map<Player,String> rewardMap     = new HashMap<Player,String>();
     
     // Maps for rewards.
     protected Map<Integer,String> rewardEveryWaveMap = new HashMap<Integer,String>();
@@ -75,50 +81,54 @@ public class Temple {
     //protected Map<String,String> specialTraitsMap = new HashMap<String,String>();
     
     // Contains Mob Spawnpoint Locations
-    public Set<Location> mobSpawnpointSet = new HashSet<Location>();
+    protected Set<Location> mobSpawnpointSet = new HashSet<Location>();
     // Contains Active Mob Spawnpoints and Creature Types
-    public Map<Location,CreatureType> mobSpawnpointMap = new HashMap<Location,CreatureType>();
+    protected Map<Location,CreatureType> mobSpawnpointMap = new HashMap<Location,CreatureType>();
     
     // Map for Death Message
-    public Map<Integer, Entity> lastDamager = new HashMap<Integer, Entity>();
+    protected Map<Integer, Entity> lastDamager = new HashMap<Integer, Entity>();
     
     // Entities, blocks and items on TempleCraft floor.
     protected Map<Integer,Integer> mobGoldMap  = new HashMap<Integer,Integer>();
-    public Set<LivingEntity> monsterSet        = new HashSet<LivingEntity>();
+    protected Set<LivingEntity> monsterSet     = new HashSet<LivingEntity>();
     protected Set<Block> tempBlockSet          = new HashSet<Block>();
     
-    public Map<Location,Integer> checkpointMap = new HashMap<Location,Integer>();
+    protected Map<Location,Integer> checkpointMap = new HashMap<Location,Integer>();
+    protected Map<Location,String[]> chatMap      = new HashMap<Location,String[]>();
     protected Set<Block> coordBlockSet         = new HashSet<Block>();
     protected Set<Block> endBlockSet           = new HashSet<Block>();
-    public Set<Block> lobbyBlockSet            = new HashSet<Block>();
-    public static int mobSpawner = 7;
-    public static int diamondBlock = 57;
-    public static int ironBlock = 42;
-    public static int goldBlock = 41;
-    public static int[] coordBlocks = {mobSpawner, diamondBlock, ironBlock, goldBlock, 63, 68};
+    protected Set<Block> lobbyBlockSet         = new HashSet<Block>();
+    protected static int mobSpawner = 7;
+    protected static int diamondBlock = 57;
+    protected static int ironBlock = 42;
+    protected static int goldBlock = 41;
+    protected static int[] coordBlocks = {mobSpawner, diamondBlock, ironBlock, goldBlock, 63, 68};
     
-    public static int rejoinCost;
+    protected static int rejoinCost;
     
-	public Temple(){
+	protected Temple(){
 	}
 
-	public Temple(String name){		
+	protected Temple(String name){		
+		config     = TCUtils.getConfig("temples");
 		templeName = name;
 		world      = TempleManager.world;
 		minLevel   = 0;
-		rejoinCost   = TempleManager.rejoinCost;
+		rejoinCost = TempleManager.rejoinCost;
 		isRunning  = false;
-		
+		owners     = TCUtils.getString(config,"Temples."+name+".owners", "");
+		editors    = TCUtils.getString(config,"Temples."+name+".editors", "");
+		loadEditors();
 		TempleManager.templeSet.add(this);
 	}
 
-    /* ///////////////////////////////////////////////////////////////////// //
+	/* ///////////////////////////////////////////////////////////////////// //
 	
     LOAD/SAVE METHODS
 
 	// ///////////////////////////////////////////////////////////////////// */
 	
-	public void saveTemple(World w, Player p){
+	protected void saveTemple(World w, Player p){
 		if(p1 == null || p2 == null){
 			TempleManager.tellPlayer(p, "Region not found.");
 			return;
@@ -136,30 +146,33 @@ public class Temple {
 		TempleManager.tellPlayer(p, "Temple Saved");
 	}
 	
-	public void loadTemple(World w){
-		Location startLoc = getFreeLocation(w);
-		
-		if(w.equals(TempleManager.world)){
+	protected void loadTemple(World w){
+		if(w.equals(world)){
 			clearTemple();
-			if(p1 != null && p2 != null){
-				clearFoundation(startLoc);
-			}
-			//clearEntities(startLoc);
+			if(startLoc == null)
+				startLoc = getFreeLocation();
+			TCRestore.loadTemple(startLoc, this);
 		} else {
-			p1 = null;
-			p2 = null;
+			TCRestore.loadTemple(new Location(w,0,0,0), this);
 		}
-		
-		TCRestore.loadTemple(startLoc, this);		
 	}
 
-	public void clearTemple() {
+	protected void repairTemple(){
+		clearFoundation(startLoc);
+		//clearEntities(startLoc);
+		TCRestore.loadTemple(startLoc, this);
+	}
+
+	protected void clearTemple() {
 		coordBlockSet.clear();
 		lobbyBlockSet.clear();
 		endBlockSet.clear();
+		startLoc = null;
+		p1 = null;
+		p2 = null;
 	}
 
-	private void clearFoundation(Location startLoc) {		
+	protected void clearFoundation(Location startLoc) {		
 		// Regenerate Chunks where temple will be
 		
 		World world = startLoc.getWorld();
@@ -168,12 +181,14 @@ public class Temple {
 		int x2 = startLoc.getBlockX() + p2.getBlockX();
 		int y1 = 0;
 		int y2 = 128;
-		int z1 = startLoc.getBlockY() + p1.getBlockZ();
-		int z2 = startLoc.getBlockY() + p2.getBlockZ();
+		int z1 = startLoc.getBlockZ() + p1.getBlockZ();
+		int z2 = startLoc.getBlockZ() + p2.getBlockZ();
 		int level = 0;
 		
-		for (int j = y1; j <= y2; j++)
-			for (int i = x1; i <= x2; i++)
+		System.out.println("Clearing Foundation from ("+x1+","+z1+") to ("+x2+","+z2+")");
+		
+		for (int j = y1; j <= y2; j++){
+			for (int i = x1; i <= x2; i++){
 		    	for (int k = z1; k <= z2; k++){
 		    		if(TempleManager.landLevels[level] < j)
 	            		level++;
@@ -182,20 +197,86 @@ public class Temple {
 		    		if(b.getTypeId() != id)
 	           			b.setTypeId(id);
 		    	}
+			}
+		}
 	}
 
-	private Location getFreeLocation(World w) {
-		if(!w.equals(TempleManager.world))
-			return new Location(w, 0, 0, 0);
-		
+	private Location getFreeLocation() {
 		int MaxX = 0;
 		for(Temple temple : TempleManager.templeSet){
 			if(temple.p2 != null && !temple.equals(this) && MaxX < temple.p2.getBlockX()+2)
 				MaxX = temple.p2.getBlockX()+2;
 			
 		}
-		Location loc = new Location(w, MaxX, 0, 0);
+		Location loc = new Location(world, MaxX, 0, 0);
 		return loc;
+	}
+	
+	private void loadEditors() {
+		for(String s : owners.split(",")){
+			s = s.trim();
+			ownerSet.add(s);
+		}
+		
+		for(String s : editors.split(",")){
+			s = s.trim();
+			accessorSet.add(s);
+		}
+	}
+	
+	protected boolean addOwner(String playerName) {
+		if(ownerSet.contains(playerName))
+			return false;
+		else
+			ownerSet.add(playerName);
+		updateEditors();
+		return true;
+	}
+	
+	protected boolean addEditor(String playerName) {
+		if(accessorSet.contains(playerName))
+			return false;
+		else
+			accessorSet.add(playerName);
+		updateEditors();
+		return true;
+	}
+	
+	protected boolean removeEditor(String playerName) {
+		boolean result;
+		result = (ownerSet.remove(playerName) || accessorSet.remove(playerName));
+		updateEditors();
+		return result;
+	}
+	
+	private void updateEditors(){
+		StringBuilder owners = new StringBuilder();
+    	for(String s : ownerSet)
+			if(owners.length() == 0)
+				owners.append(s);
+			else
+				owners.append(","+s);
+    	
+    	StringBuilder editors = new StringBuilder();
+    	for(String s : accessorSet)
+			if(editors.length() == 0)
+				editors.append(s);
+			else
+				editors.append(","+s);
+    	
+    	this.owners = owners.toString();
+    	this.editors = editors.toString();
+    	
+    	saveConfig();
+	}
+
+	protected void saveConfig(){
+		Configuration c = config;
+    	c.load();
+    	System.out.println(editors);
+    	c.setProperty("Temples."+templeName+".owners", owners);    	
+    	c.setProperty("Temples."+templeName+".editors", editors);
+    	c.save();
 	}
 	
 	/* ///////////////////////////////////////////////////////////////////// //
@@ -207,7 +288,7 @@ public class Temple {
 	/**
 	* Starts the current TempleCraft session.
 	*/
-	public void startTemple()
+	protected void startTemple()
 	{		
 		isRunning = true;
 		
@@ -215,10 +296,10 @@ public class Temple {
 		for (Player p : playerSet)
 		{
 		    p.teleport(templeLoc);
-		    rewardMap.put(p,"");
+		    //rewardMap.put(p,"");
 		}
 		
-		tellAll("Let the slaughter begin!");
+		tellAll("Let the games begin!");
 	}
 	
 	private void convertLobby(){
@@ -247,8 +328,16 @@ public class Temple {
 		String[] Lines = sign.getLines();
 		Block b = sign.getBlock();
 		
-		if(!Lines[0].equals("[TempleCraft]") && !Lines[0].equals("[TC]"))
+		
+		if(!Lines[0].equals("[TempleCraft]") && !Lines[0].equals("[TC]")){
+			if(Lines[0].equals("[TempleCraftM]") || Lines[0].equals("[TCM]")){
+				String[] newLines = {Lines[1]+Lines[2],Lines[3]};
+				chatMap.put(b.getLocation(), newLines);
+				b.setTypeId(0);
+			}
 			return;
+		}
+			
 		
 		if(Lines[1].toLowerCase().equals("lobby")){
 			lobbyLoc = b.getLocation();
@@ -256,12 +345,22 @@ public class Temple {
 		} else if(Lines[1].toLowerCase().equals("checkpoint")){
 			int range;
 			try{
-				range = Integer.parseInt(Lines[2]);
+				range = Integer.parseInt(Lines[3]);
 			}catch(Exception e){
-				range = 5;
+				try{
+					range = Integer.parseInt(Lines[2]);
+				}catch(Exception e2){
+					range = 5;
+				}
 			}
 			checkpointMap.put(b.getLocation(), range);
 			b.setTypeId(0);
+		} else if(Lines[1].toLowerCase().equals("classes")){
+			if(MobArenaClasses.enabled){
+				MobArenaClasses.generateClassSigns(sign);
+				usingClasses = true;
+			} else
+				sign.getBlock().setTypeId(0);
 		} else {
 			String s = Lines[1]+Lines[2]+Lines[3];
 			for(String mob : TempleManager.mobs)
@@ -320,23 +419,38 @@ public class Temple {
 	* Clears the Temple floor, gives all the players their rewards,
 	* and stops the spawning of monsters.
 	*/
-	public void endTemple()
+	protected void endTemple()
 	{
 		isRunning = false;
 		
-		TempleManager.tellAll("Temple: \""+templeName+"\" finished.");
 		removePlayers();
 		killMonsters();
-		loadTemple(world);
+		repairTemple();
+		TempleManager.tellAll("Temple: \""+templeName+"\" finished.");
+	}
+	
+	protected void removeAll(){
+		removePlayers();
+		removeEditors();
 	}
 	
 	// Removes players from temple
-	public void removePlayers(){
-		for(Player p: TempleManager.server.getOnlinePlayers()){
+	protected void removePlayers(){
+		for(Player p: playerSet){
 			TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 			if(tp == null)
 				return;
-			if(tp.currentTemple == this && p.getWorld().equals(TempleManager.world))
+			if(tp.currentTemple == this)
+				TempleManager.playerLeave(p);
+		}
+	}
+	// Removes editors from temple
+	protected void removeEditors(){
+		for(Player p: editorSet){
+			TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+			if(tp == null)
+				return;
+			if(tp.currentTemple == this)
 				TempleManager.playerLeave(p);
 		}
 	}
@@ -346,7 +460,7 @@ public class Temple {
 	* Players must have an empty inventory to join the Temple. Their
 	* location will be stored for when they leave.
 	*/
-	public void playerJoin(Player p)
+	protected void playerJoin(Player p)
 	{
 		
 		if (!TempleManager.isEnabled || !this.isEnabled)
@@ -381,8 +495,10 @@ public class Temple {
 		}
 		
 		tp.currentTemple = this;
+		tp.currentCheckpoint = null;
 		TempleManager.playerSet.add(p);
 		playerSet.add(p);
+		p.setHealth(20);
 		if(world.getPlayers().isEmpty()){
 			world.setTime(8000);
 			world.setStorm(false);
@@ -399,7 +515,7 @@ public class Temple {
 		tellPlayer(p, "You joined "+templeName+". Have fun!");
 	}
 	
-	public boolean trySetup(){
+	protected boolean trySetup(){
 		boolean foundLobbyLoc = false;
 		boolean foundTempleLoc = false;
 		
@@ -429,7 +545,7 @@ public class Temple {
 	
 	private boolean checkSign(Sign sign) {
 		String[] Lines = sign.getLines();
-		if(!Lines[0].equals("[TC]"))
+		if(!Lines[0].equals("[TC]") && !Lines[0].equals("[TempleCraft]"))
 			return false;
 		
 		if(Lines[1].toLowerCase().equals("lobby")){
@@ -441,7 +557,7 @@ public class Temple {
 	/**
 	* Adds a joined Temple player to the set of ready players.
 	*/
-	public void playerReady(Player p)
+	protected void playerReady(Player p)
 	{
 	readySet.add(p);
 	
@@ -455,7 +571,7 @@ public class Temple {
 	* and their health is restored. All sets and maps are updated.
 	* If this was the last player alive, the Temple session ends.
 	*/
-	public void playerDeath(Player p)
+	protected void playerDeath(Player p)
 	{
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		Holdings balance = iConomy.getAccount(p.getName()).getHoldings();
@@ -466,6 +582,8 @@ public class Temple {
 		}
 		
 		readySet.remove(p);
+		MobArenaClasses.classMap.remove(p);
+		tp.tempSet.clear();
 		tp.roundDeaths++;
 		
 		String msg;
@@ -497,7 +615,7 @@ public class Temple {
 	/**
 	* Prints the list of players currently in the Temple session.
 	*/
-	public void playerList(Player p)
+	protected void playerList(Player p)
 	{
 	if (playerSet.isEmpty())
 	{
@@ -519,7 +637,7 @@ public class Temple {
 	/**
 	* Prints the list of players who aren't ready.
 	*/
-	public void notReadyList(Player p)
+	protected void notReadyList(Player p)
 	{
 		if (playerSet.isEmpty())
 		{
@@ -552,7 +670,7 @@ public class Temple {
 	* playerSet who aren't ready to leave, and starting the
 	* Temple for everyone else.
 	*/
-	public void forceStart(Player p)
+	protected void forceStart(Player p)
 	{
 	if (isRunning)
 	{
@@ -580,7 +698,7 @@ public class Temple {
 	* Forcefully ends the Temple, causing all players to leave and
 	* all relevant sets and maps to be cleared.
 	*/
-	public void forceEnd(Player p)
+	protected void forceEnd(Player p)
 	{
 	if (playerSet.isEmpty() && p != null)
 	{
@@ -601,7 +719,7 @@ public class Temple {
 	
 	// ///////////////////////////////////////////////////////////////////// */
 	
-	public void SpawnMobs(Location loc, CreatureType mob) {
+	protected void SpawnMobs(Location loc, CreatureType mob) {
 		//for (int i = 0; i < playerSet.size(); i++)
 	    //{
 			LivingEntity e = world.spawnCreature(loc,mob);
@@ -653,7 +771,7 @@ public class Temple {
 	/**
 	* Kills all monsters currently on the Temple floor.
 	*/
-	public void killMonsters()
+	protected void killMonsters()
 	{        
 	// Remove all monsters, then clear the Set.
 	for (LivingEntity e : monsterSet)
@@ -667,7 +785,7 @@ public class Temple {
 	/**
 	* Removes all the blocks on the Temple floor.
 	*/
-	public void clearTempBlocks()
+	protected void clearTempBlocks()
 	{
 	// Remove all blocks, then clear the Set.
 	for (Block b : tempBlockSet)
@@ -679,7 +797,7 @@ public class Temple {
 	/**
 	* Removes all items and slimes in the Temple region.
 	*/
-	public void clearEntities(Location startLoc)
+	protected void clearEntities(Location startLoc)
 	{
 		if(p1 == null || p2 == null || world == null)
 			return;
@@ -709,7 +827,7 @@ public class Temple {
 	/**
 	* Sends a message to a player.
 	*/
-	public void tellPlayer(Player p, String msg)
+	protected void tellPlayer(Player p, String msg)
 	{
 	if (p == null)
 	    return;
@@ -720,7 +838,7 @@ public class Temple {
 	/**
 	* Sends a message to all players in the Temple.
 	*/
-	public void tellAll(String msg)
+	protected void tellAll(String msg)
 	{
 		for(Player p: playerSet)
 			tellPlayer((Player)p, msg);	    
