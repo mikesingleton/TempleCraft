@@ -122,9 +122,8 @@ public class TempleManager
     public static void reloadTemples() {
     	clearWorld(world);
     	for(Temple temple : templeSet)
-    		temple.clearTemple();
-    	for(Temple temple : templeSet)
-    		temple.loadTemple(world);
+    		if(temple.isLoaded)
+    			temple.clearTemple();
     }
     
 	public static void loadCustomTemples() {
@@ -142,7 +141,6 @@ public class TempleManager
     			temple = TCUtils.getTempleByName(templeName);
     			if(temple == null)
     				temple = new Temple(templeName);
-    			temple.loadTemple(world);
     		}
     	}	
 	}

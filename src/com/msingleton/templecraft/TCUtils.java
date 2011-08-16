@@ -578,9 +578,9 @@ public class TCUtils
 		if(EditWorld == null)
 			return;
 		
-		TempleManager.clearWorld(EditWorld);
-		
+		// Only clears and loads Temple if no one is already editing
 		if(temple.editorSet.isEmpty()){
+			TempleManager.clearWorld(EditWorld);
 			EditWorld.setTime(8000);
 			EditWorld.setStorm(false);
 			temple.loadTemple(EditWorld);

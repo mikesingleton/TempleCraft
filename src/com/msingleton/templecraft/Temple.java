@@ -45,6 +45,7 @@ public class Temple {
     protected boolean isRunning     = false;
     protected boolean isSetup       = false;
     protected boolean isEnabled     = true;
+    protected boolean isLoaded      = false;
     protected boolean usingClasses  = false;
     protected int specialModulo, minLevel, templeWidth, templeHeight, templeDepth, roomWidth, roomHeight, roomLength;
     protected int TempleRooms, BossRooms, SpawnRooms, ItemRooms, Rooms; 
@@ -117,6 +118,7 @@ public class Temple {
 		minLevel   = 0;
 		rejoinCost = TempleManager.rejoinCost;
 		isRunning  = false;
+		isLoaded   = false;
 		owners     = TCUtils.getString(config,"Temples."+name+".owners", "");
 		editors    = TCUtils.getString(config,"Temples."+name+".editors", "");
 		loadEditors();
@@ -157,6 +159,7 @@ public class Temple {
 			p2 = null;
 			TCRestore.loadTemple(new Location(w,0,0,0), this);
 		}
+		isLoaded = true;
 	}
 
 	protected void repairTemple(){
@@ -170,6 +173,7 @@ public class Temple {
 		lobbyBlockSet.clear();
 		endBlockSet.clear();
 		startLoc = null;
+		isLoaded = false;
 		p1 = null;
 		p2 = null;
 	}
@@ -464,12 +468,14 @@ public class Temple {
 	* location will be stored for when they leave.
 	*/
 	protected void playerJoin(Player p)
-	{
-		
+	{		
 		if (!TempleManager.isEnabled || !this.isEnabled)
 		{
 		    tellPlayer(p, "TempleCraft is not enabled.");
 		    return;
+		}
+		if(!isLoaded){
+			loadTemple(world);
 		}
 		if (!isSetup && !trySetup())
 		{
@@ -502,6 +508,7 @@ public class Temple {
 		TempleManager.playerSet.add(p);
 		playerSet.add(p);
 		p.setHealth(20);
+		
 		if(world.getPlayers().isEmpty()){
 			world.setTime(8000);
 			world.setStorm(false);
@@ -518,7 +525,7 @@ public class Temple {
 		tellPlayer(p, "You joined "+templeName+". Have fun!");
 	}
 	
-	protected boolean trySetup(){
+	protected boolean trySetup(){		
 		boolean foundLobbyLoc = false;
 		boolean foundTempleLoc = false;
 		
