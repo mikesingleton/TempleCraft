@@ -102,7 +102,7 @@ public class TCRestore {
 	    }
 	    catch (Exception e)
 	    {
-	        System.out.println("Couldn't create backup file. Aborting...");
+	        System.out.println("[TempleCraft] Couldn't create backup file. Aborting...");
 	        e.printStackTrace();
 	        return;
 	    }
@@ -147,7 +147,7 @@ public class TCRestore {
         }
         catch (Exception e)
         {
-            System.out.println("TempleCraft file not found for this temple.");
+            System.out.println("[TempleCraft] TempleCraft file not found for this temple.");
             return;
         }
         

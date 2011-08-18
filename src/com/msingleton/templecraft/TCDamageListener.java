@@ -129,7 +129,7 @@ public class TCDamageListener extends EntityListener
 	           		for(Player p : temple.playerSet){
 	           			int gold = temple.mobGoldMap.get(e.getEntityId())/temple.playerSet.size();
 	           			TempleManager.templePlayerMap.get(p).roundGold += gold;
-	           			if(TempleCraft.iConomy != null)
+	           			if(TempleCraft.method != null)
 	           				iConomy.getAccount(p.getName()).getHoldings().add(gold);
 	           		}
 	           	}

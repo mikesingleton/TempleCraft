@@ -143,7 +143,7 @@ public class Temple {
 	    int z2 = (int)p2.getZ();
 		
 	    TempleManager.tellPlayer(p, "Saving...");
-	    TempleManager.tellPlayer(p, "From ("+x1+",0,"+z1+") to ("+x2+",0,"+z2+")");
+	    TempleManager.tellPlayer(p, "From ("+x1+",0,"+z1+") to ("+x2+",128,"+z2+")");
 	    
 		TCRestore.saveTemple(new Location(w, x1, 0, z1), new Location(w, x2, 128, z2), this);
 		TempleManager.tellPlayer(p, "Temple Saved");
@@ -164,10 +164,14 @@ public class Temple {
 
 	protected void repairTemple(){
 		clearFoundation(startLoc);
-		//clearEntities(startLoc);
 		TCRestore.loadTemple(startLoc, this);
 	}
 
+	protected void unloadTemple(){
+		clearFoundation(startLoc);
+		clearTemple();
+	}
+	
 	protected void clearTemple() {
 		coordBlockSet.clear();
 		lobbyBlockSet.clear();
@@ -191,7 +195,7 @@ public class Temple {
 		int z2 = z1 + (p2.getBlockZ() - p1.getBlockZ());
 		int level = 0;
 		
-		System.out.println("Clearing Foundation from ("+x1+","+z1+") to ("+x2+","+z2+")");
+		System.out.println("[TempleCraft] Clearing Foundation in World "+ world.getName() +" from ("+x1+","+z1+") to ("+x2+","+z2+")");
 		
 		for (int j = y1; j <= y2; j++){
 			for (int i = x1; i <= x2; i++){
@@ -279,7 +283,6 @@ public class Temple {
 	protected void saveConfig(){
 		Configuration c = config;
     	c.load();
-    	System.out.println(editors);
     	c.setProperty("Temples."+templeName+".owners", owners);    	
     	c.setProperty("Temples."+templeName+".editors", editors);
     	c.save();
@@ -431,8 +434,10 @@ public class Temple {
 		isRunning = false;
 		readySet.clear();
 		removePlayers();
+		unloadTemple();
+		//repairTemple();
 		killMonsters();
-		repairTemple();
+		//clearEntities(startLoc);
 		TempleManager.tellAll("Temple: \""+templeName+"\" finished.");
 	}
 	
@@ -443,13 +448,16 @@ public class Temple {
 	
 	// Removes players from temple
 	protected void removePlayers(){
+		Set<Player> tempSet = new HashSet<Player>();
 		for(Player p: playerSet){
 			TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 			if(tp == null)
 				return;
 			if(tp.currentTemple != null && tp.currentTemple == this)
-				TempleManager.playerLeave(p);
+				tempSet.add(p);
 		}
+		for(Player p : tempSet)
+			TempleManager.playerLeave(p);
 	}
 	// Removes editors from temple
 	protected void removeEditors(){
@@ -475,6 +483,7 @@ public class Temple {
 		    return;
 		}
 		if(!isLoaded){
+			tellPlayer(p, "Loading "+templeName+"...");
 			loadTemple(world);
 		}
 		if (!isSetup && !trySetup())
@@ -597,8 +606,8 @@ public class Temple {
 		tp.roundDeaths++;
 		
 		String msg;
-		if(TempleCraft.iConomy == null || balance.hasEnough(rejoinCost)){
-			if(TempleCraft.iConomy != null && rejoinCost > 0){
+		if(TempleCraft.method == null || balance.hasEnough(rejoinCost)){
+			if(TempleCraft.method != null && rejoinCost > 0){
 				msg = "To continue playing will cost you "+ChatColor.GOLD+rejoinCost+" gold.";
 				TempleManager.tellPlayer(p, msg);
 				msg = "Or type \"/tc leave\" and restart from the beginning!";
@@ -625,11 +634,12 @@ public class Temple {
 	/**
 	* Prints the list of players currently in the Temple session.
 	*/
-	protected void playerList(Player p)
+	protected void playerList(Player p, boolean tellIfEmpty)
 	{
 	if (playerSet.isEmpty())
 	{
-	    tellPlayer(p, "There is no one in the Temple right now.");
+		if(tellIfEmpty)
+			tellPlayer(p, "There is no one in the Temple right now.");
 	    return;
 	}
 	
@@ -738,7 +748,7 @@ public class Temple {
 				return;
 	        
 	        Random r = new Random();
-	        if(TempleCraft.iConomy != null && (TempleManager.mobGoldMin + TempleManager.mobGoldRan) != 0 && r.nextInt(3) == 0){
+	        if(TempleCraft.method != null && (TempleManager.mobGoldMin + TempleManager.mobGoldRan) != 0 && r.nextInt(3) == 0){
 	        	mobGoldMap.put(e.getEntityId(), r.nextInt(TempleManager.mobGoldRan)+TempleManager.mobGoldMin);
 	        }
 	        
@@ -824,8 +834,7 @@ public class Temple {
 	for (int i = x1; i <= x2; i++)
 	    for (int j = z1; j <= z2; j++)
 	    	for (Entity e : startLoc.getWorld().getChunkAt(i,j).getEntities())
-	       		if ((e instanceof Item) || (e instanceof Slime))
-	       			e.remove();
+       			e.remove();
 	}
 	
 	/* ///////////////////////////////////////////////////////////////////// //

@@ -20,6 +20,7 @@ import com.ryanspeets.bukkit.flatlands.TempleWorldGenerator;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
+import com.nijikokun.register.payment.Method;
 
 
 /**
@@ -36,7 +37,7 @@ public class TempleCraft extends JavaPlugin
                                       		"new", "edit", "save", "reload"};
     private Logger log;
     public List<String> ENABLED_COMMANDS;
-    public static iConomy iConomy = null;
+    public static Method method = null;
     public static PermissionHandler permissionHandler;
     public static String fileExtention = ".tcf";
     
@@ -121,7 +122,7 @@ public class TempleCraft extends JavaPlugin
         log.info("Found and will use plugin "+((Permissions)permissionsPlugin).getDescription().getFullName());
     }
     
-    public static WorldEditPlugin getWorldEdit(){
+    /*public static WorldEditPlugin getWorldEdit(){
     Plugin worldEdit = TempleManager.server.getPluginManager().getPlugin("WorldEdit");
     if (worldEdit == null) {
       System.out.println("WorldEdit does not appear to be installed.");
@@ -132,5 +133,5 @@ public class TempleCraft extends JavaPlugin
     }
     System.out.println("WorldEdit detection failed (report error).");
 	return null;
-  }
+  }*/
 }

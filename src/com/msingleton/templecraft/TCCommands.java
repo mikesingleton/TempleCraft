@@ -18,7 +18,7 @@ public class TCCommands implements CommandExecutor
         // Only accept commands from players.
         if ((sender == null) || !(sender instanceof Player))
         {
-            System.out.println("Only players can use these commands, silly.");
+            System.out.println("[TempleCraft] Only players can use these commands, silly.");
             return true;
         }
         
@@ -59,20 +59,6 @@ public class TCCommands implements CommandExecutor
     		return true;
     	}
     	
-    	/*
-    	if((cmd.equals("spectate") || cmd.equals("spec")) && TCPermissionHandler.hasPermission(p, "templecraft.spectate"))
-    	{
-    		for(Temple temple : TempleManager.templeSet){
-    			if(temple.isRunning){
-    				temple.playerSpectate(p);
-    				return true;
-    			}
-    		}
-    		TempleManager.tellPlayer(p, "There are no temples currently running! Please try again later.");
-    		return true;
-    	}
-    	*/
-    	
     	if ((cmd.equals("leave") || cmd.equals("l")) && TCPermissionHandler.hasPermission(p, "templecraft.leave"))
         {
         	TempleManager.playerLeave(p);
@@ -98,7 +84,7 @@ public class TCCommands implements CommandExecutor
     	
     	if (cmd.equals("reload") && TCPermissionHandler.hasPermission(p, "templecraft.reload"))
         {
-    		TempleManager.tellPlayer(p, "Temples Reloading...");
+    		TempleManager.tellPlayer(p, "Clearing TempleWorld...");
     		for(Player tempp : TempleManager.world.getPlayers()){
     			TemplePlayer temptp = TempleManager.templePlayerMap.get(tempp);
     			if(temptp.currentTemple != null){
@@ -108,14 +94,14 @@ public class TCCommands implements CommandExecutor
     			}
     		}
     		TempleManager.reloadTemples();
-    		TempleManager.tellPlayer(p, "Temples Reloaded");
+    		TempleManager.tellPlayer(p, "Done :)");
             return true;
         }
     	
         if ((cmd.equals("playerlist") || cmd.equals("plist")) && TCPermissionHandler.hasPermission(p, "templecraft.playerlist"))
         {
         	if(TempleManager.playerSet.contains(p))
-        		tp.currentTemple.playerList(p);
+        		tp.currentTemple.playerList(p,true);
         	else
         		TempleManager.playerList(p);
             return true;
@@ -193,6 +179,7 @@ public class TCCommands implements CommandExecutor
     			return true;
     		}
         	
+    		TempleManager.tellPlayer(p, "Preparing "+temple.templeName+"...");
     		TCUtils.editTemple(p, temple);
             return true;
         }
@@ -278,15 +265,7 @@ public class TCCommands implements CommandExecutor
             return true;
         }
         
-        /*
-        if ((cmd.equals("spectate") || cmd.equals("spec")) && TCPermissionHandler.hasPermission(p, "templecraft.spectate"))
-        {
-            temple.playerSpectate(p);
-            return true;
-        }
-        */
-        
-        // tc forcestart [templeName]
+        // tc forcestart <templeName>
         if (cmd.equals("forcestart") && TCPermissionHandler.hasPermission(p, "templecraft.forcestart"))
         {
             temple.forceStart(p);

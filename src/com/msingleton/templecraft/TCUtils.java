@@ -184,7 +184,7 @@ public class TCUtils
     public static World getTempleWorld()
     {        
        	TempleManager.server.createWorld("templeworld", Environment.NORMAL, new TempleWorldGenerator());
-        System.out.println("TempleWorld Created!");
+        System.out.println("[TempleCraft] TempleWorld Created!");
         
         return TempleManager.server.getWorld("templeworld");
     }

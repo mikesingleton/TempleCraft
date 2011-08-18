@@ -240,7 +240,7 @@ public class MobArenaClasses extends PlayerListener{
             } else if(stack.getType() == Material.LEATHER_BOOTS || stack.getType() == Material.IRON_BOOTS || stack.getType() == Material.GOLD_BOOTS || stack.getType() == Material.DIAMOND_BOOTS){
 		        inv.setBoots(stack);
             } else {
-            	System.out.println("No Armor was detected by getArmor");
+            	System.out.println("[TempleCraft] No Armor was detected by getArmor");
             }
         }
     }

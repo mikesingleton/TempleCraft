@@ -81,7 +81,7 @@ public class TCLobbyListener extends PlayerListener
 		            temple.playerReady(p);
 	        	} else {
 	        		Holdings balance = iConomy.getAccount(p.getName()).getHoldings();
-	        		if(TempleCraft.iConomy == null || balance.hasEnough(temple.rejoinCost)){
+	        		if(TempleCraft.method == null || balance.hasEnough(temple.rejoinCost)){
 	    				temple.deadSet.remove(p);
 	    				if(tp.currentCheckpoint != null)
 	    					p.teleport(tp.currentCheckpoint);
@@ -96,7 +96,7 @@ public class TCLobbyListener extends PlayerListener
 	    				}
 	    				
 	    				// If iConomy is installed, subtract money from account
-	    				if(TempleCraft.iConomy != null && temple.rejoinCost > 0){
+	    				if(TempleCraft.method != null && temple.rejoinCost > 0){
 	    					String msg = ChatColor.GOLD + "" + temple.rejoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
 	    					temple.tellPlayer(p, msg);
 	    					balance.subtract(temple.rejoinCost);

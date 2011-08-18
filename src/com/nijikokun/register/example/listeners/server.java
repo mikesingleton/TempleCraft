@@ -1,14 +1,23 @@
-package com.msingleton.templecraft;
+package com.nijikokun.register.example.listeners;
 
+// Imports for MyPlugin
+import com.nijikokun.register.example.MyPlugin;
+import com.nijikokun.register.payment.Methods;
+
+// Bukkit Imports
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.server.ServerListener;
 
-import com.nijikokun.register.payment.*;
-public class TCServerListener extends ServerListener {
-	private Methods Methods = null;
+public class server extends ServerListener {
+    // Change "MyPlugin" to the name of your MAIN class file.
+    // Let's say my plugins MAIN class is: MyPlugin.java
+    // I would change "MyPlugin" to "MyPlugin"
+    private MyPlugin plugin;
+    private Methods Methods = null;
 
-    public TCServerListener(TempleCraft plugin) {
+    public server(MyPlugin plugin) {
+        this.plugin = plugin;
         this.Methods = new Methods();
     }
 
@@ -19,8 +28,8 @@ public class TCServerListener extends ServerListener {
             Boolean check = this.Methods.checkDisabled(event.getPlugin());
 
             if(check) {
-                TempleCraft.method = null;
-                System.out.println("[TempleCraft] Un-hooked from Economy.");
+                this.plugin.Method = null;
+                System.out.println("[" + plugin.info.getName() + "] Payment method was disabled. No longer accepting payments.");
             }
         }
     }
@@ -32,8 +41,8 @@ public class TCServerListener extends ServerListener {
             if(this.Methods.setMethod(event.getPlugin())) {
                 // You might want to make this a public variable inside your MAIN class public Method Method = null;
                 // then reference it through this.plugin.Method so that way you can use it in the rest of your plugin ;)
-            	TempleCraft.method = this.Methods.getMethod();
-                System.out.println("[TempleCraft] Hooked into Economy (" + TempleCraft.method.getName() + " version: " + TempleCraft.method.getVersion() + ")");
+                this.plugin.Method = this.Methods.getMethod();
+                System.out.println("[" + plugin.info.getName() + "] Payment method found (" + this.plugin.Method.getName() + " version: " + this.plugin.Method.getVersion() + ")");
             }
         }
     }

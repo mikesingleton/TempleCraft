@@ -146,6 +146,8 @@ public class TCPlayerListener  extends PlayerListener{
     	Temple temple = TCUtils.getTempleByName(Line2.toLowerCase());
     	if(temple != null){
     		temple.playerJoin(p);
+    	} else {
+    		TempleManager.tellPlayer(p, "Temple \""+Line2+"\" does not exist");
     	}
     }
 }
