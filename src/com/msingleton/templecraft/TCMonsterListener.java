@@ -4,12 +4,17 @@ import java.util.HashMap;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.entity.Creature;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTargetEvent.TargetReason;
+
+import com.msingleton.templecraft.games.Game;
+import com.msingleton.templecraft.games.Adventure;;
 
 
 /**
@@ -31,11 +36,22 @@ public class TCMonsterListener extends EntityListener
      */
     public void onEntityExplode(EntityExplodeEvent event)
     {
-    	if(!event.getLocation().getWorld().equals(TempleManager.world))
+    	if(!TCUtils.isTCWorld(event.getLocation().getWorld()))
     		return;
         
-        // Only apply to creepers
-        if(!(event.getEntity() instanceof LivingEntity)){
+    	Entity e = event.getEntity();
+    	
+    	Game game;
+    	if(e instanceof Creature)
+    		game = TCUtils.getGame(e);
+    	else
+    		game = TCUtils.getGameByWorld(event.getLocation().getWorld());
+    	
+    	if (game == null)
+            return;
+    	
+        // Only apply to creepers in adventure mode
+        if((game instanceof Adventure) && !(e instanceof LivingEntity)){
         	if(TempleManager.dropBlocks)
         		return;
         	
@@ -48,11 +64,6 @@ public class TCMonsterListener extends EntityListener
         		b.setTypeId(0);
         	event.setYield(0);
         }
-        
-    	Temple temple = TCUtils.getTemple(event.getEntity());
-    	
-        if (temple == null)
-            return;
     	
         /* This could be done by simply cancelling the event, but that
          * also cancels the explosion animation. This is a workaround. */
@@ -67,14 +78,14 @@ public class TCMonsterListener extends EntityListener
             // Doors are wonky, so don't store them. Just smile and wave, and remove from set.
             if (b.getType() == Material.WOODEN_DOOR || b.getType() == Material.IRON_DOOR_BLOCK || b.getType() == Material.CAKE_BLOCK)
             {
-                temple.tempBlockSet.remove(b);
+                game.tempBlockSet.remove(b);
                 continue;
             }
             
             // If a block is in the tempblockSet, make sure it drops "naturally".
-            if (temple.tempBlockSet.remove(b))
+            if (game.tempBlockSet.remove(b))
             {
-                temple.world.dropItemNaturally(b.getLocation(), new ItemStack(b.getTypeId(), 1));
+                game.world.dropItemNaturally(b.getLocation(), new ItemStack(b.getTypeId(), 1));
                 continue;
             }
             
@@ -110,36 +121,34 @@ public class TCMonsterListener extends EntityListener
     // Zombie/skeleton combustion from the sun.
     public void onEntityCombust(EntityCombustEvent event)
     {
-    	Temple temple = TCUtils.getTemple(event.getEntity());
-    	if(temple == null)
+    	Game game = TCUtils.getGame(event.getEntity());
+    	if(game == null)
     		return;
     	
-        if (temple.monsterSet.contains(event.getEntity()))
+        if (game.monsterSet.contains(event.getEntity()))
             event.setCancelled(true);
     }
     
     // Monsters losing their targets.
     public void onEntityTarget(EntityTargetEvent event)
     {
-    	Temple temple = TCUtils.getTemple(event.getEntity());
-    	if(temple == null)
+    	Game game = TCUtils.getGame(event.getEntity());
+    	if(game == null)
     		return;
     	
-        if (!temple.isRunning)
+        if (!game.isRunning)
             return;
         
-        if (!temple.monsterSet.contains(event.getEntity()))
+        if (!game.monsterSet.contains(event.getEntity()))
             return;
         
-        /*
         if (event.getReason() == TargetReason.FORGOT_TARGET)
-            event.setTarget(TCPlayerListener.getClosestPlayer(event.getEntity()));
+            event.setTarget(TCUtils.getClosestPlayer(game, event.getEntity()));
             
         if (event.getReason() == TargetReason.TARGET_DIED)
-            event.setTarget(MASpawnThread.getClosestPlayer(event.getEntity()));
+            event.setTarget(TCUtils.getClosestPlayer(game, event.getEntity()));
             
         if (event.getReason() == TargetReason.CLOSEST_PLAYER)
-            event.setTarget(MASpawnThread.getClosestPlayer(event.getEntity()));
-        */
+            event.setTarget(TCUtils.getClosestPlayer(game, event.getEntity()));
     }
 }

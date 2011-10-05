@@ -7,13 +7,18 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import com.msingleton.templecraft.games.Game;
+
 public class TemplePlayer{
-	protected Set<Object> tempSet = new HashSet<Object>();
+	public Set<Object> tempSet = new HashSet<Object>();
 	private Player player;
-	protected int roundMobsKilled, roundPlayersKilled, roundGold, roundDeaths, ownedTemples;
+	protected int roundMobsKilled, roundPlayersKilled, roundGold;
+	public int roundDeaths;
+	protected int ownedTemples;
     protected String name;
-    protected Location currentCheckpoint;
-    protected Temple currentTemple;
+    public Location currentCheckpoint;
+    public Temple currentTemple;
+    public Game currentGame;
 	
 	public TemplePlayer(){
 	}

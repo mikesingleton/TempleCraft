@@ -2,6 +2,7 @@ package com.msingleton.templecraft;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,25 +17,25 @@ import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.config.Configuration;
 
 
-import com.ryanspeets.bukkit.flatlands.TempleWorldGenerator;
+import com.msingleton.templecraft.games.Game;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 
 public class TempleManager
 {
-	protected static Map<Player,Location> locationMap = new HashMap<Player,Location>();
+	public static Map<Player,Location> locationMap = new HashMap<Player,Location>();
 	
     // Convenience variables.
-    protected static TempleCraft plugin        = null;
+    public static TempleCraft plugin        = null;
     public static WorldEditPlugin worldEdit = null;
-    protected static Server   server           = null;
-    public static World    world               = null;
-    protected static boolean isEnabled         = true;
+    public static Server   server           = null;
+    public static boolean isEnabled         = true;
     protected static boolean checkUpdates;
     protected static boolean dropBlocks;
     
@@ -44,14 +45,16 @@ public class TempleManager
     // A Map of which temples are being editted in which World
     public static Map<String,World> templeEditMap  = new HashMap<String,World>();
     public static Map<Player,TemplePlayer> templePlayerMap  = new HashMap<Player,TemplePlayer>();
-    protected static Set<Temple> templeSet         = new HashSet<Temple>();
-    protected static Set<Temple> customTempleSet   = new HashSet<Temple>();
-    protected static Set<Player> playerSet         = new HashSet<Player>();
-    public static Set<Integer> breakable           = new HashSet<Integer>();    
+    public static Set<Temple> templeSet          = new HashSet<Temple>();
+    public static Set<Game> gameSet              = new HashSet<Game>();
+    public static Set<Player> playerSet          = new HashSet<Player>();
+    public static Set<Integer> breakable         = new HashSet<Integer>();    
     public static String breakableMats;
     public static String goldPerMob;
     
-    final public static String[] mobs = {"Chicken","Cow","Pig","Sheep","Zombie","Pig_Zombie","Skeleton","Creeper","Wolf","Ghast","Monster","Slime","Spider","Squid"};
+    final public static String[] mobs = {"Chicken","Cow","Pig","Sheep","Zombie","PigZombie","Skeleton","Creeper","Wolf","Ghast","Monster","Slime","Spider","Squid"};
+    final public static Set<String> modes = new HashSet<String>(Arrays.asList("adventure","zombies","spleef"));
+    //future modes: "race","ctf","koth","assult","assassin"
     
     // Flatland Configs
     public static int[] landLevels = {0,60,64,65,128};
@@ -76,27 +79,159 @@ public class TempleManager
             plugin                 = instance;
             config 		           = TCUtils.getConfig("config");
             server                 = plugin.getServer();
-            world                  = TCUtils.getTempleWorld();
             
             // Configurable
             repairDelay            = TCUtils.getInt("settings.repairdelay", 5);
             maxEditWorlds          = TCUtils.getInt("settings.maxeditworlds", 2);
             maxTemplesPerPerson    = TCUtils.getInt("settings.maxtemplesperperson", 1);
             rejoinCost             = TCUtils.getInt("settings.rejoincost", 0);
-            breakableMats          = TCUtils.getString(config, "settings.breakablemats", "46,82");
+            breakableMats          = TCUtils.getString(config, "settings.breakablemats", "31,37,38,39,40,46,82");
             goldPerMob             = TCUtils.getString(config, "settings.goldpermob", "50-100");
-            dropBlocks             = TCUtils.getBoolean("settings.dropblocks", false);
+            dropBlocks             = TCUtils.getBoolean(config, "settings.dropblocks", false);
             
         	//worldEdit              = TempleCraft.getWorldEdit();
         	loadMisc();
         	loadTemplePlayers();
-        	loadEditWorlds();
 	    	loadCustomTemples();
         }
         // Convenience variables.
-        checkUpdates            = TCUtils.getBoolean("settings.updatenotification", true);
+        checkUpdates            = TCUtils.getBoolean(config, "settings.updatenotification", true);
     }
 
+	/* ///////////////////////////////////////////////////////////////////// //
+	
+    LOAD/SAVE METHODS
+
+	// ///////////////////////////////////////////////////////////////////// */
+    
+	public static void loadCustomTemples() {
+		File folder = new File("plugins/TempleCraft/SavedTemples/");
+    	if(!folder.exists())
+    		folder.mkdir();
+    	// Get temples based on filenames
+    	for(File f : folder.listFiles()){
+    		if(f.isDirectory()){
+    			String templeName = f.getName();
+    			Temple temple;
+    			temple = TCUtils.getTempleByName(templeName);
+    			if(temple == null)
+    				temple = new Temple(templeName);
+    		} else if(f.getName().endsWith(".tcf")){
+    			String templeName = f.getName().replace(".tcf", "");
+    			Temple temple;
+    			temple = TCUtils.getTempleByName(templeName);
+    			if(temple == null)
+    				temple = new Temple(templeName);
+    		}
+    	}	
+	}
+
+	private static void loadTemplePlayers() {
+		for(Player p : server.getOnlinePlayers())
+			if(!TempleManager.templePlayerMap.containsKey(p))
+				TempleManager.templePlayerMap.put(p, new TemplePlayer(p));
+	}
+	
+    /* ///////////////////////////////////////////////////////////////////// //
+	
+    PLAYER METHODS
+
+	// ///////////////////////////////////////////////////////////////////// */
+	
+    public static void playerList(Player p){
+		if (playerSet.isEmpty())
+		{
+		    tellPlayer(p, "There is no one in a Temple right now.");
+		    return;
+		}
+		
+		for(Game game : gameSet)
+			game.playerList(p, false);
+	}
+    
+    public static void notReadyList(Player p){
+		if (playerSet.isEmpty())
+		{
+		    tellPlayer(p, "There is no one in a Temple right now.");
+		    return;
+		}
+		
+		for(Game game : gameSet)
+			game.notReadyList(p);
+	}
+    
+    public static void removeAll() {
+    	// Attempts to make all players leave whatever they are doing
+		for(Player p : server.getOnlinePlayers())
+			playerLeave(p);
+	}
+    
+    public static void clearWorld(World world) {
+    	for(Chunk c : world.getLoadedChunks())
+    		world.regenerateChunk(c.getX(), c.getZ());
+    	for(Entity e : world.getEntities())
+    		if(!(e instanceof Player))
+    			e.remove();
+	}
+    
+    /**
+	* Attempts to remove a player from the Temple session.
+	* The player is teleported back to his previous location, and
+	* is removed from all the sets and maps.
+	*/
+    
+    public static void playerLeave(Player p)
+	{
+    	TemplePlayer tp = templePlayerMap.get(p);
+    	Temple temple = tp.currentTemple;
+    	Game game = tp.currentGame;
+    	
+    	if(temple == null && game == null)
+    		return;
+    	
+    	p.setFireTicks(0);
+		tp.currentTemple = null;
+		tp.currentGame = null;
+		tp.currentCheckpoint = null;
+		playerSet.remove(p);
+		MobArenaClasses.classMap.remove(p);
+		
+		if(TCUtils.hasPlayerInventory(p.getName()))
+			TCUtils.restorePlayerInventory(p);
+		
+		if(locationMap.containsKey(p)){
+			p.teleport(locationMap.get(p));
+		} else {
+			String msg = "We have lost track of your origin. Please request assistance.";
+			TempleManager.tellPlayer(p, msg);
+		}
+		locationMap.remove(p);
+		
+		if(temple.editorSet.remove(p))
+			if(templeEditMap.containsKey(temple.templeName))
+				TCUtils.deleteTempWorld(templeEditMap.remove(temple.templeName));
+		else
+			tp.displayStats();
+		
+		if(game != null){
+			// Players are only removed from the readySet when they use /tc leave
+			if (game.readySet.remove(p) && !game.readySet.isEmpty() && game.readySet.equals(temple.playerSet))
+				if(!game.isRunning)
+					game.startGame();
+			
+			// Players are removed from the playerSet when they use /tc leave or the temple is ending
+			if(game.playerSet.remove(p))
+				if(game.playerSet.isEmpty())
+					game.endGame();
+		}
+	}
+
+	/* ///////////////////////////////////////////////////////////////////// //
+	
+    MISC METHODS
+
+	// ///////////////////////////////////////////////////////////////////// */
+	
     private static void loadMisc() {
     	String[] g = goldPerMob.split("-");
     	try{
@@ -117,150 +252,7 @@ public class TempleManager
     			breakable.add(Integer.parseInt(s));
     	}
 	}
-
-	/* ///////////////////////////////////////////////////////////////////// //
-	
-    LOAD/SAVE METHODS
-
-	// ///////////////////////////////////////////////////////////////////// */
     
-    public static void reloadTemples() {
-    	clearWorld(world);
-    	for(Temple temple : templeSet)
-    		if(temple.isLoaded)
-    			temple.clearTemple();
-    }
-    
-	public static void loadCustomTemples() {
-		clearWorld(world);
-		
-		File folder = new File("plugins/TempleCraft/SavedTemples/");
-    	if(!folder.exists())
-    		folder.mkdir();
-    	for(String fileName : folder.list()){
-    		if(fileName.contains("/"))
-    			continue;
-    		if(fileName.contains(TempleCraft.fileExtention)){
-    			String templeName = fileName.replace(TempleCraft.fileExtention, "");
-    			Temple temple;
-    			temple = TCUtils.getTempleByName(templeName);
-    			if(temple == null)
-    				temple = new Temple(templeName);
-    		}
-    	}	
-	}
-
-	private static void loadTemplePlayers() {
-		for(Player p : server.getOnlinePlayers())
-			if(!TempleManager.templePlayerMap.containsKey(p))
-				TempleManager.templePlayerMap.put(p, new TemplePlayer(p));
-	}
-    
-	private static void loadEditWorlds(){
-		if(maxEditWorlds > 10)
-			maxEditWorlds = 10;
-		for(int i = 0; i < maxEditWorlds; i++){
-			server.createWorld("EditWorld_"+i, Environment.NORMAL, new TempleWorldGenerator());
-			System.out.println("[TempleCraft] EditWorld \"EditWorld_"+i+"\" Loaded!");
-		}
-	}
-	
-    /* ///////////////////////////////////////////////////////////////////// //
-	
-    PLAYER METHODS
-
-	// ///////////////////////////////////////////////////////////////////// */
-	
-    public static void playerList(Player p){
-		if (playerSet.isEmpty())
-		{
-		    tellPlayer(p, "There is no one in a Temple right now.");
-		    return;
-		}
-		
-		for(Temple temple : templeSet)
-			temple.playerList(p, false);
-	}
-    
-    public static void notReadyList(Player p){
-		if (playerSet.isEmpty())
-		{
-		    tellPlayer(p, "There is no one in a Temple right now.");
-		    return;
-		}
-		
-		for(Temple temple : templeSet)
-			temple.notReadyList(p);
-	}
-    
-    public static void removeAll() {
-    	// Attempts to make all players leave whatever they are doing
-		for(Player p : server.getOnlinePlayers())
-			playerLeave(p);
-	}
-    
-    public static void clearWorld(World world) {
-    	for(Chunk c : world.getLoadedChunks())
-    		world.regenerateChunk(c.getX(), c.getZ());
-    	for(Entity e : world.getEntities())
-    		e.remove();
-	}
-    
-    /**
-	* Attempts to remove a player from the Temple session.
-	* The player is teleported back to his previous location, and
-	* is removed from all the sets and maps.
-	*/
-    
-    public static void playerLeave(Player p)
-	{
-    	TemplePlayer tp = templePlayerMap.get(p);
-    	Temple temple = tp.currentTemple;
-    	
-    	if(temple == null)
-    		return;
-    	
-    	p.setFireTicks(0);
-		tp.currentTemple = null;
-		tp.currentCheckpoint = null;
-		playerSet.remove(p);
-		MobArenaClasses.classMap.remove(p);
-		
-		if(temple.editorSet.remove(p)){
-			if(temple.editorSet.isEmpty())
-				TempleManager.templeEditMap.remove(temple.templeName);
-		} else {
-			tp.displayStats();
-		}
-		
-		// Players are only removed from the readySet when they use /tc leave
-		if (temple.readySet.remove(p) && !temple.readySet.isEmpty() && temple.readySet.equals(temple.playerSet))
-			if(!temple.isRunning)
-				temple.startTemple();
-		
-		// Players are removed from the playerSet when they use /tc leave or the temple is ending
-		if(temple.playerSet.remove(p))
-			if(temple.isRunning && temple.playerSet.isEmpty())
-				temple.endTemple();
-			
-		if(TCUtils.hasPlayerInventory(p.getName()))
-			TCUtils.restorePlayerInventory(p);
-		
-		if(locationMap.containsKey(p)){
-			p.teleport(locationMap.get(p));
-		} else {
-			String msg = "We have lost track of your origin. Please request assistance.";
-			TempleManager.tellPlayer(p, msg);
-		}
-		locationMap.remove(p);
-	}
-    
-    /* ///////////////////////////////////////////////////////////////////// //
-	
-    MISC METHODS
-
-	// ///////////////////////////////////////////////////////////////////// */
-	
 	/**
 	* Sends a message to a player.
 	*/

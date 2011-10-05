@@ -15,8 +15,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.PluginManager;
 
-import com.iConomy.iConomy;
-import com.ryanspeets.bukkit.flatlands.TempleWorldGenerator;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
@@ -32,8 +30,8 @@ public class TempleCraft extends JavaPlugin
 {
     /* Array of commands used to determine if a command belongs to TempleCraft
      * or Mean Admins. */
-    public static final String[] COMMANDS = {"info", "join", "j", "leave", "l", "nullclass", "playerlist", "plist", "templelist", "tlist",
-    										"spectate", "spec", "ready", "notready", "enable", "checkupdates", "forcestart", "forceend",
+    public static final String[] COMMANDS = {"newgame", "join", "j", "leave", "l", "playerlist", "plist", "templelist", "tlist",
+    										"gamelist","glist", "ready", "notready", "checkupdates", "forcestart", "forceend",
                                       		"new", "edit", "save", "reload"};
     private Logger log;
     public List<String> ENABLED_COMMANDS;
@@ -62,9 +60,9 @@ public class TempleCraft extends JavaPlugin
         PluginManager pm = getServer().getPluginManager();
     	
         PlayerListener commandListener  = new TCEnabledCommands(this);
-        PlayerListener lobbyListener    = new TCLobbyListener(this);
         PlayerListener playerListener   = new TCPlayerListener(this);
         PlayerListener maListener       = new MobArenaClasses(this);
+        PlayerListener teleportListener = new TCTeleportListener(this);
         PlayerListener discListener     = new TCDisconnectListener(this);
         BlockListener  blockListener    = new TCBlockListener(this);
         EntityListener damageListener   = new TCDamageListener(this);
@@ -76,12 +74,11 @@ public class TempleCraft extends JavaPlugin
         // Register events.
     	
         pm.registerEvent(Event.Type.PLAYER_COMMAND_PREPROCESS, commandListener, Priority.Monitor, this);
-        pm.registerEvent(Event.Type.PLAYER_INTERACT,  lobbyListener,    Priority.Normal,  this);
-        pm.registerEvent(Event.Type.PLAYER_DROP_ITEM, lobbyListener,    Priority.Normal,  this);
-        pm.registerEvent(Event.Type.PLAYER_BUCKET_EMPTY, lobbyListener, Priority.Normal,  this);
+        pm.registerEvent(Event.Type.PLAYER_BUCKET_EMPTY, playerListener,Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_MOVE,      playerListener,   Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_INTERACT,  playerListener,   Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_INTERACT,  maListener,       Priority.Normal,  this);
+        pm.registerEvent(Event.Type.PLAYER_TELEPORT,  teleportListener, Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_QUIT,      discListener,     Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_KICK,      discListener,     Priority.Normal,  this);
         pm.registerEvent(Event.Type.PLAYER_JOIN,      discListener,     Priority.Normal,  this);
@@ -104,6 +101,8 @@ public class TempleCraft extends JavaPlugin
     {    
     	permissionHandler = null;
         TempleManager.removeAll();
+        TCUtils.deleteTempWorlds();
+        TCUtils.cleanConfigFiles();
     }
     
     private void setupPermissions() {
@@ -122,7 +121,7 @@ public class TempleCraft extends JavaPlugin
         log.info("Found and will use plugin "+((Permissions)permissionsPlugin).getDescription().getFullName());
     }
     
-    /*public static WorldEditPlugin getWorldEdit(){
+    public static WorldEditPlugin getWorldEdit(){
     Plugin worldEdit = TempleManager.server.getPluginManager().getPlugin("WorldEdit");
     if (worldEdit == null) {
       System.out.println("WorldEdit does not appear to be installed.");
@@ -133,5 +132,5 @@ public class TempleCraft extends JavaPlugin
     }
     System.out.println("WorldEdit detection failed (report error).");
 	return null;
-  }*/
+  }
 }

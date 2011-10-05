@@ -1,7 +1,12 @@
-package com.tommytony.war.utils;
+package com.msingleton.templecraft;
 
+import org.bukkit.GameMode;
 import org.bukkit.inventory.ItemStack;
 
+/**
+ * NOTE: I DID NOT WRITE THIS CLASS (notice the author below)
+ * @author tommytony
+ */
 public class InventoryStash {
 	private ItemStack[] contents;
 	private ItemStack helmet;
@@ -9,20 +14,24 @@ public class InventoryStash {
 	private ItemStack legs;
 	private ItemStack feet;
 	private int health;
+	private int foodLevel;
+	private int experience;
+	private GameMode gameMode;
 
 	public InventoryStash(ItemStack[] contents) {
 		this.setContents(contents);
-		
 	}
 	
-	public InventoryStash(ItemStack[] contents, ItemStack helmet, ItemStack chest, ItemStack legs, ItemStack feet, int health) {
+	public InventoryStash(ItemStack[] contents, ItemStack helmet, ItemStack chest, ItemStack legs, ItemStack feet, int health, int foodLevel, int experience, GameMode gameMode) {
 		this.setContents(contents);
 		this.setHelmet(helmet);
 		this.setChest(chest);
 		this.setLegs(legs);
 		this.setFeet(feet);
 		this.setHealth(health);
-		
+		this.setFoodLevel(foodLevel);
+		this.setExperience(experience);
+		this.setGameMode(gameMode);
 	}
 
 	public void setContents(ItemStack[] contents) {
@@ -71,5 +80,29 @@ public class InventoryStash {
 
 	public int getHealth() {
 		return health;
+	}
+	
+	public void setFoodLevel(int foodLevel) {
+		this.foodLevel = foodLevel;
+	}
+
+	public int getFoodLevel() {
+		return foodLevel;
+	}
+	
+	public void setExperience(int experience) {
+		this.experience = experience;
+	}
+
+	public int getExperience() {
+		return experience;
+	}
+	
+	public void setGameMode(GameMode gameMode) {
+		this.gameMode = gameMode;
+	}
+
+	public GameMode getGameMode() {
+		return gameMode;
 	}
 }

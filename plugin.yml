@@ -1,7 +1,7 @@
 name: TempleCraft
 author: Mike Singleton
 main: com.msingleton.templecraft.TempleCraft
-version: 0.32
+version: 0.33
 commands:
   tc:
     description: Base command for TempleCraft
@@ -11,6 +11,7 @@ permissions:
     templecraft.*:
         description: Gives access to all TempleCraft commands
         children:
+            templecraft.newgame: true
             templecraft.join: true            templecraft.leave: true            templecraft.ready: true            templecraft.templelist: true            templecraft.playerlist: true            templecraft.forcestart: true            templecraft.forceend: true
             templecraft.enable: true
             templecraft.checkupdates: true
@@ -19,11 +20,13 @@ permissions:
             templecraft.edittemple: true
             templecraft.editall: true
             templecraft.savetemple: true
-            templecraft.reload: true
+            templecraft.worldtotemple: true
+            templecraft.converttemples: true
 
     templecraft.editbasics:
         description: Gives access to basic edit commands
         children:
+            templecraft.join: true
             templecraft.newtemple: true
             templecraft.edittemple: true
             templecraft.savetemple: true
@@ -31,11 +34,14 @@ permissions:
             templecraft.removeplayer: true
 
 # General Play Commands
+    templecraft.newgame:
+        description: Create a new game.
+        default: op
     templecraft.join:
-        description: Join an open Temple.
+        description: Join an open game.
         default: op
     templecraft.leave:
-        description: Leave current temple.
+        description: Leave current game.
         default: true
     templecraft.ready:
         description: Lists who is ready.
@@ -43,6 +49,8 @@ permissions:
     templecraft.templelist:
         description: Lists all Temples.
         default: true
+    templecraft.gamelist:
+        description: Lists all current games.
     templecraft.playerlist:
         description: Lists all players in a Temple.
         default: true
@@ -78,6 +86,9 @@ permissions:
     templecraft.savetemple:
         description: Allows Saving the current Temple.
         default: true
-    templecraft.reload:
-        description: Allows Reloading TempleWorld.
+    templecraft.worldtotemple:
+        description: Save a world as a temple.
+        default: op
+    templecraft.converttemples:
+        description: Converts .tcf files to worlds and sets them up if possible.
         default: op

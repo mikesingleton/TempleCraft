@@ -1,10 +1,9 @@
-package com.ryanspeets.bukkit.flatlands;
+package com.msingleton.templecraft;
 
 import java.util.Random;
 import org.bukkit.World;
 import org.bukkit.generator.ChunkGenerator;
 
-import com.msingleton.templecraft.TempleManager;
 
 public class TempleWorldGenerator extends ChunkGenerator
 {

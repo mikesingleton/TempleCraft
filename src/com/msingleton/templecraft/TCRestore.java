@@ -3,8 +3,11 @@ package com.msingleton.templecraft;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -14,6 +17,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.ContainerBlock;
@@ -27,75 +31,87 @@ import org.bukkit.material.PistonBaseMaterial;
 
 public class TCRestore {
 	//Blocks
-	private static int[] blockArray = {0,1,2,3,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,35,41,42,43,44,45,46,47,48,49,52,54,56,57,58,60,61,62,67,73,74,79,80,81,82,84,85,86,87,88,89,90,91,92};
-	private static Set<Integer> blockSet = new HashSet<Integer>();
+	private static Set<Integer> blockSet = new HashSet<Integer>(Arrays.asList(0,1,2,3,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,35,41,42,43,44,45,46,47,48,49,52,54,56,57,58,60,61,62,67,73,74,79,80,81,82,84,85,86,87,88,89,90,91,92));
 	private static String c = ":";
 	private static String s = " ";
 	
-	public static void saveTemple(Location p1, Location p2, Temple temple){	
-		World world = p1.getWorld();
+	public static void saveTemple(World w, Temple temple){
+		if(w == null || temple == null)
+			return;
 		
-	    int x1 = (int)p1.getX();
-	    int y1 = 0;
-	    int z1 = (int)p1.getZ();
-	    int x2 = (int)p2.getX();
-	    int y2 = 128;
-	    int z2 = (int)p2.getZ();
-		
-		// Save the precious patch
-	    HashMap<EntityPosition, String> preciousPatch = new HashMap<EntityPosition, String>();
-	    Location lo;
-	    String id = "";
-	    int level = 0;   
-	    for (int j = y1; j <= y2; j++)
-        {
-	    	for (int i = x1; i <= x2; i++)
-	    	{
-	            for (int k = z1; k <= z2; k++)
-	            {
-	            	Block b = world.getBlockAt(i,j,k);
-	            	byte data = b.getData();
-	            	int typeId = b.getTypeId();
-	            	boolean push = true;
-	            	if(TempleManager.landLevels[level] < j)
-	            		level++;
-	            	if(typeId == TempleManager.landMats[level]){
-	           			continue;
-	            		// Save chest and furnace and dispenser inventories
-	            	} else if(b.getState() instanceof ContainerBlock){
-	            		if(!contentsToString((ContainerBlock)b.getState()).replace(" ", "").isEmpty()){
-	            			id = typeId+c+data + c + contentsToString((ContainerBlock)b.getState());	
-	            		} else {
-	            			id = typeId+c+data;
-	            		}
-	            	// Don't save the top halves of doors
-	            	} else if((typeId == 71 || typeId == 64) && data > 7) {
-           				push = false;
-            			// Save sign messages
-	            	} else if(typeId == 68 || typeId == 63){
-	            		Sign sign = (Sign) b.getState();
-	            		id = typeId+c+data + c + sign.getLine(0) + c + sign.getLine(1) + c + sign.getLine(2) + c + sign.getLine(3);
-	            	} else {
-	            		id = typeId+c+data;
-	            	}
-	            	if(push){
-	            		lo = world.getBlockAt(i-x1,j-y1,k-z1).getLocation();
-	            		preciousPatch.put(new EntityPosition(lo),id);
-	            	}
-	            }
+		w.save();
+		copyDirectory(new File(w.getName()),new File("plugins/TempleCraft/SavedTemples/"+temple.templeName));
+		saveSignificantBlocks(temple);
+	}
+
+	// Copies all files under srcDir to dstDir.
+	// If dstDir does not exist, it will be created.
+	public static void copyDirectory(File srcDir, File dstDir){
+	    if (srcDir.isDirectory()) {
+	        if (!dstDir.exists()) {
+	            dstDir.mkdir();
 	        }
+
+	        String[] children = srcDir.list();
+	        for (int i=0; i<children.length; i++) {
+	            copyDirectory(new File(srcDir, children[i]), new File(dstDir, children[i]));
+	        }
+	    } else {
+	        // This method is implemented in Copying a File
+	        copyFile(srcDir, dstDir);
 	    }
-	    try
+	}
+	
+	// Copies src file to dst file.
+	// If the dst file does not exist, it is created
+	public static void copyFile(File src, File dst){
+		try{
+		    InputStream in = new FileInputStream(src);
+		    OutputStream out = new FileOutputStream(dst);
+	
+		    // Transfer bytes from in to out
+		    byte[] buf = new byte[1024];
+		    int len;
+		    while ((len = in.read(buf)) > 0) {
+		        out.write(buf, 0, len);
+		    }
+		    in.close();
+		    out.close();
+		}catch(Exception e){
+			System.out.println("Could not copy file "+src);
+		}
+	}
+	
+	public static boolean loadTemple(String worldName, Temple temple){
+		File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName);
+		
+		if(!file.exists())
+			return false;
+		
+		copyDirectory(new File("plugins/TempleCraft/SavedTemples/"+temple.templeName),new File(worldName));
+		return true;
+	}
+	
+	public static void saveSignificantBlocks(Temple temple){
+		if(temple == null || temple.coordBlockSet.isEmpty())
+			return;
+		
+		HashSet<EntityPosition> significantLocs = new HashSet<EntityPosition>();
+		
+		for(Block b : temple.coordBlockSet)
+			significantLocs.add(new EntityPosition(b.getLocation()));
+		
+		try
 	    {	
 	    	File folder = new File("plugins/TempleCraft/SavedTemples/");
         	if(!folder.exists())
         		folder.mkdir();
-        	File tmpfile = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName + ".tmp");
+        	File tmpfile = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName+"/"+"TCLocs.tmp");
 	        FileOutputStream fos = new FileOutputStream(tmpfile);
 	        ObjectOutputStream oos = new ObjectOutputStream(fos);
-	        oos.writeObject(preciousPatch);
+	        oos.writeObject(significantLocs);
 	        oos.close();
-	        File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName + TempleCraft.fileExtention);
+	        File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName+"/"+"TCLocs"+ TempleCraft.fileExtention);
 	        if(file.exists())
 	        	file.delete();
 	        tmpfile.renameTo(file);
@@ -108,32 +124,43 @@ public class TCRestore {
 	    }
 	}
 	
-	private static String contentsToString(ContainerBlock cb) {
-		StringBuilder result = new StringBuilder();
-		for(ItemStack item : cb.getInventory().getContents()){
-			if(item != null)
-				result.append(item.getTypeId() + s + item.getAmount() + s + item.getDurability() + s);
-			else
-				result.append(s+s+s);
-		}
-		result.deleteCharAt(result.length()-1);
-		return result.toString();
+	@SuppressWarnings("unchecked")
+	public static HashSet<EntityPosition> getSignificantEPs(Temple temple){		
+		String fileName = "TCLocs"+TempleCraft.fileExtention;
+		
+		HashSet<EntityPosition> significantEPs = new HashSet<EntityPosition>();		
+        try
+        {
+        	File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName+"/"+fileName);
+            FileInputStream fis = new FileInputStream(file);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            significantEPs = (HashSet<EntityPosition>) ois.readObject();
+            ois.close();
+        }
+        catch (Exception e)
+        {
+            System.out.println("[TempleCraft] TempleCraft file not found for this temple.");
+        }
+
+        return significantEPs;
 	}
 	
-	private static void contentsFromString(ContainerBlock cb, String string) {
-		String[] items = string.split(s);
-		for(int i = 0; i < items.length; i+=3){
-			if(items[i] == null || items[i].isEmpty())
-				continue;
-			ItemStack item = new ItemStack(Integer.parseInt(items[i]));
-			item.setAmount(Integer.parseInt(items[i+1]));
-			item.setDurability(Short.parseShort(items[i+2]));
-			cb.getInventory().setItem(i/3, item);
-		}
+	public static HashSet<Block> getSignificantBlocks(Temple temple, World world){					
+		HashSet<Block> significantBlocks = new HashSet<Block>();
+		
+        for(EntityPosition ep : getSignificantEPs(temple))
+			significantBlocks.add(world.getBlockAt((int)ep.getX(),(int)ep.getY(),(int)ep.getZ()));
+        
+        return significantBlocks;
 	}
-
+	
+	
+	// Old Loading Method
 	@SuppressWarnings("unchecked")
-	public static void loadTemple(Location startLoc, Temple temple){		
+	public static void loadTemple(Location startLoc, Temple temple){	
+		if(startLoc == null)
+			return;
+		
 		String fileName = temple.templeName + TempleCraft.fileExtention;
 		
 		HashMap<EntityPosition,String> preciousPatch;
@@ -149,13 +176,6 @@ public class TCRestore {
         {
             System.out.println("[TempleCraft] TempleCraft file not found for this temple.");
             return;
-        }
-        
-        // Load blockSet if it isn't loaded already
-        if(blockSet.isEmpty()){
-	        for(int id : blockArray){
-	    		blockSet.add(id);
-	    	}
         }
         
         Set<EntityPosition> ppKeySet = new HashSet<EntityPosition>();
@@ -183,6 +203,17 @@ public class TCRestore {
         loadBlockMap(startLoc, pistonMap, temple, true);
 	}
 
+	private static void contentsFromString(ContainerBlock cb, String string) {
+		String[] items = string.split(s);
+		for(int i = 0; i < items.length; i+=3){
+			if(items[i] == null || items[i].isEmpty())
+				continue;
+			ItemStack item = new ItemStack(Integer.parseInt(items[i]));
+			item.setAmount(Integer.parseInt(items[i+1]));
+			item.setDurability(Short.parseShort(items[i+2]));
+			cb.getInventory().setItem(i/3, item);
+		}
+	}
 	
 	private static void loadBlockMap(Location startLoc, Map<EntityPosition, String> blockMap, Temple temple, Boolean physics) {
 		World world = startLoc.getWorld();
@@ -204,6 +235,7 @@ public class TCRestore {
 				b.getRelative(0,1,0).setTypeIdAndData(id,(byte) (data+8), true);
 			// If it's a sign, add the text
 			} else if(b.getState() instanceof Sign){
+				temple.coordBlockSet.add(b);
         		if(s.length > 2){
         			for(int i = 2; i<s.length;i++){
         				if((i-2)>3 || (i-2)<0 || s[i] == null)
@@ -216,11 +248,10 @@ public class TCRestore {
         	} else if(b.getState() instanceof ContainerBlock){
 				if(s.length > 2)
 					contentsFromString((ContainerBlock)b.getState(), s[2]);
+        	// If it's diamond,gold or iron or bedrock, add it to coordBlockSet
+        	} else if(b.getTypeId() == Temple.goldBlock || b.getTypeId() == Temple.diamondBlock || b.getTypeId() == Temple.ironBlock || b.getTypeId() == Temple.mobSpawner){
+        		temple.coordBlockSet.add(b);
         	}
-
-			if(world.equals(TempleManager.world))
-				addToTempleSets(temple, b);
-			TCUtils.expandRegion(temple, loc);
         }
 	}
 
@@ -238,14 +269,6 @@ public class TCRestore {
 				return mats[i];
 		}
 		return 0;
-	}
-	
-	private static void addToTempleSets(Temple temple, Block b) {
-		if(b.getWorld().equals(TempleManager.world)){
-			for(int id : Temple.coordBlocks)
-				if(b.getTypeId() == id && b.getLocation().getBlockY() > 0)
-					temple.coordBlockSet.add(b);
-		}
 	}
 
 	public static void clearEntities(Location p1, Location p2)

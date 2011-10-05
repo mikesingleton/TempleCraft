@@ -12,6 +12,8 @@ import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+
+import com.msingleton.templecraft.games.Game;
 //import org.bukkit.event.block.BlockDamageEvent;
 
 
@@ -42,20 +44,23 @@ public class TCBlockListener extends BlockListener
     	if(temple == null)
     		return;
     	
-    	if(p.getWorld().getName().contains("EditWorld_")){
-    		TCUtils.expandRegion(temple, b.getLocation());
+    	if(TCUtils.isTCEditWorld(p.getWorld()))
     		return;
-    	}
     	
     	boolean cancel = true;
     	
-        if (!temple.isRunning && event.getPlayer().isOp())
+    	Game game = tp.currentGame;
+    	
+    	if(game == null)
+    		return;
+    	
+        if (!game.isRunning && event.getPlayer().isOp())
             cancel = false;
         
         if (TempleManager.breakable.contains(b.getTypeId()))
             cancel = false;
         
-        if (temple.tempBlockSet.remove(b))
+        if (game.tempBlockSet.remove(b))
         	return;
         
         if(TempleManager.dropBlocks && !cancel)
@@ -82,22 +87,30 @@ public class TCBlockListener extends BlockListener
     	if(temple == null)
     		return;
     	
-    	if(p.getWorld().getName().contains("EditWorld_")){
-    		TCUtils.expandRegion(temple, b.getLocation());
+    	// if player places significant block while editing, record it
+    	if(TCUtils.isTCEditWorld(p.getWorld())){
+    		for(int i : Temple.coordBlocks)
+    			if(b.getTypeId() == i)
+    				temple.coordBlockSet.add(b);
     		return;
     	}
     	
-    	if (!temple.isRunning && event.getPlayer().isOp())
+    	Game game = tp.currentGame;
+    	
+    	if(game == null)
+    		return;
+    	
+    	if (!game.isRunning && event.getPlayer().isOp())
             return;
         
-        if (temple.isRunning && TempleManager.playerSet.contains(event.getPlayer()))
+        if (game.isRunning && TempleManager.playerSet.contains(event.getPlayer()))
         {
-            temple.tempBlockSet.add(b);
+            game.tempBlockSet.add(b);
             Material type = b.getType();
             
             // Make sure to add the top parts of doors.
             if (type == Material.WOODEN_DOOR || type == Material.IRON_DOOR_BLOCK)
-                temple.tempBlockSet.add(b.getRelative(0,1,0));
+                game.tempBlockSet.add(b.getRelative(0,1,0));
             
             return;
         }

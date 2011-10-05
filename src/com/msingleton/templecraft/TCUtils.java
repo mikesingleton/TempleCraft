@@ -4,12 +4,16 @@ import java.net.URI;
 import java.net.HttpURLConnection;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.Set;
+
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.Location;
@@ -17,18 +21,21 @@ import org.bukkit.World.Environment;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.config.Configuration;
 
 
-import com.ryanspeets.bukkit.flatlands.TempleWorldGenerator;
+import com.msingleton.templecraft.games.Adventure;
+import com.msingleton.templecraft.games.Game;
+import com.msingleton.templecraft.games.Spleef;
+import com.msingleton.templecraft.games.Zombies;
 import com.sk89q.minecraft.util.commands.CommandException;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.selections.Polygonal2DSelection;
 import com.sk89q.worldedit.bukkit.selections.Selection;
 import com.sk89q.worldedit.regions.Region;
-import com.tommytony.war.utils.InventoryStash;
 
 public class TCUtils
 {                   
@@ -93,7 +100,7 @@ public class TCUtils
 		inventory.clear(inventory.getSize() + 2);
 		inventory.clear(inventory.getSize() + 3);*/
 		inventories.put(player.getName(), new InventoryStash(contents, inventory.getHelmet(), inventory.getChestplate(), 
-																inventory.getLeggings(), inventory.getBoots(), player.getHealth()));	
+																inventory.getLeggings(), inventory.getBoots(), player.getHealth(), player.getFoodLevel(), player.getExperience(), player.getGameMode()));	
 	}
     
 	public static void restorePlayerInventory(Player player) {
@@ -103,6 +110,9 @@ public class TCUtils
 			playerInvFromInventoryStash(playerInv, originalContents);
 		}
 		player.setHealth(originalContents.getHealth());
+		player.setFoodLevel(originalContents.getFoodLevel());
+		player.setExperience(originalContents.getExperience());
+		player.setGameMode(originalContents.getGameMode());
 	}
     
 	private static void playerInvFromInventoryStash(PlayerInventory playerInv,
@@ -133,7 +143,7 @@ public class TCUtils
     
     /* ///////////////////////////////////////////////////////////////////// //
     
-            INITIALIZATION METHODS
+            INITIALIZATION METHODS (CONFIGURATION)
     
     // ///////////////////////////////////////////////////////////////////// */
     
@@ -166,7 +176,7 @@ public class TCUtils
         Configuration c = TempleManager.config;
         c.load();
         
-        String commands = c.getString("settings.enabledcommands", "/tc leave");
+        String commands = c.getString("settings.enabledcommands", "/tc");
         c.setProperty("settings.enabledcommands", commands);
         c.save();
         
@@ -177,47 +187,25 @@ public class TCUtils
         return result;
     }
     
-    /**
-     * Grabs the world from the config-file, or the "default" world
-     * from the list of worlds in the server object.
-     */
-    public static World getTempleWorld()
-    {        
-       	TempleManager.server.createWorld("templeworld", Environment.NORMAL, new TempleWorldGenerator());
-        System.out.println("[TempleCraft] TempleWorld Created!");
-        
-        return TempleManager.server.getWorld("templeworld");
-    }
-    
-    public static World getEditWorld(Player p, Temple temple)
-    {    	
-    	World result;    	
-    	if(TempleManager.templeEditMap.containsKey(temple.templeName)){
-    		result = TempleManager.templeEditMap.get(temple.templeName);
+    public static String getNextAvailableTempWorldName(String type) {
+    	String name;
+    	if(type.equals("Edit")){
+    		int size = TempleManager.templeEditMap.size();
+    		if(size >= TempleManager.maxEditWorlds)
+    			return null;
+    		else
+    			name = "TCEditWorld_"+size;
     	} else {
-    		result = nextAvailableEditWorld(p);
-    		TempleManager.templeEditMap.put(temple.templeName, result);
+    		Set<String> worldNames = new HashSet<String>();
+    		for(World w : TempleManager.server.getWorlds())
+    			worldNames.add(w.getName());
+    			int i = 0;
+    		do{
+    			name = "TC"+type+"World_"+i;
+    			i++;
+    		}while(worldNames.contains(name));
     	}
-    	
-    	return result;
-    }
-    
-    private static World nextAvailableEditWorld(Player p) {
-    	int size = TempleManager.templeEditMap.size();
-    	for(World world : TempleManager.templeEditMap.values()){
-    		if(world.getPlayers().isEmpty()){
-    			return world;
-    		}
-    	}
-    	
-    	if(size >= TempleManager.maxEditWorlds){
-    		TempleManager.tellPlayer(p, "All EditWorlds are currently in use.");
-    		return null;
-    	}
-    	
-    	World result = TempleManager.server.createWorld("EditWorld_"+size, Environment.NORMAL, new TempleWorldGenerator());
-        
-        return result;
+    	return name;
 	}
     
     /**
@@ -252,9 +240,9 @@ public class TCUtils
     /**
      * Grabs a boolean from the config-file.
      */
-    public static boolean getBoolean(String path, boolean def)
+    public static boolean getBoolean(Configuration config, String path, boolean def)
     {
-        Configuration c = TempleManager.config;
+        Configuration c = config;
         c.load();
         
         boolean result = c.getBoolean(path, def);
@@ -264,63 +252,333 @@ public class TCUtils
         return result;
     }
     
+    public static void setBoolean(Configuration config, String path, boolean key)
+    {
+        Configuration c = config;
+        c.load();
+        
+        c.setProperty(path, key);
+        
+        c.save();
+    }
+    
+    /**
+     * Creates a Configuration object from the config.yml file.
+     */
+    public static void cleanConfigFiles()
+    {
+        cleanTempleConfig();
+    }
+    
+    private static void cleanTempleConfig() {
+		Configuration c = getConfig("temples");
+		c.load();
+		if(c.getKeys("Temples") == null)
+			return;
+		
+		for(String s :c.getKeys("Temples")){
+			Temple temple = getTempleByName(s);
+			if(temple == null)
+				c.removeProperty("Temples."+s);
+		}
+		c.save();
+	}
+
+	/* ///////////////////////////////////////////////////////////////////// //
+    
+			PLAYER METHODS
+
+	// ///////////////////////////////////////////////////////////////////// */
+    
+    public static Player getPlayerByName(String playerName){
+		for(Player p : TempleManager.server.getOnlinePlayers())
+			if(p.getName().equals(playerName))
+				return p;
+		return null;
+	}
+    
+    /**
+     * Turns the current set of players into an array, and grabs a random
+     * element out of it.
+     */
+    public static Player getRandomPlayer()
+    {
+        Random random = new Random();
+        Object[] array = TempleManager.server.getOnlinePlayers();
+        return (Player) array[random.nextInt(array.length)];
+    }
+    
     /* ///////////////////////////////////////////////////////////////////// //
     
-            REGION AND SETUP METHODS
+    		TEMPLE EDIT METHODS
+
+	// ///////////////////////////////////////////////////////////////////// */
+
+    public static Temple getTempleByName(String templeName){
+    	templeName = templeName.toLowerCase();
+    	for(Temple temple : TempleManager.templeSet)
+        	if(temple.templeName.equals(templeName))
+        		return temple;
+    	return null;
+    } 
     
-    // ///////////////////////////////////////////////////////////////////// */
+    public static Temple getTempleByWorld(World w) {
+		for(Temple temple : TempleManager.templeSet){
+			World world = TempleManager.templeEditMap.get(temple.templeName);
+			if(world != null && world.equals(w))
+				return temple;
+		}
+		return null;
+	}
     
-    /**
-     * Checks if the Location object is within the arena region.
-     */
-    /*
-    public static boolean inRegion(Location p1, Location p2, Location loc)
-    {
-        if (!loc.getWorld().getName().equals(TempleManager.world.getName()))
-            return false;
-        
-        // Return false if the location is outside of the region.
-        if ((loc.getX() < p1.getX()) || (loc.getX() > p2.getX()))
-            return false;
-            
-        if ((loc.getZ() < p1.getZ()) || (loc.getZ() > p2.getZ()))
-            return false;
-            
-        if ((loc.getY() < p1.getY()) || (loc.getY() > p2.getY()))
-            return false;
-            
-        return true;
-    }*/
-    
-    /**
-     * Expands the temple region outward if necessary
-     */
-    public static void expandRegion(Temple temple, Location loc)
-    {    	
-    	if(temple.p1 == null || temple.p2 == null){
-        	temple.p1 = new Location(loc.getWorld(), loc.getX(), 0, loc.getZ());
-        	temple.p2 = new Location(loc.getWorld(), loc.getX(), 128, loc.getZ());
-        }
+    public static boolean newTemple(Player p, String templeName, boolean edit) {		
+		Temple temple = TCUtils.getTempleByName(templeName);
+		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+		
+		if(tp.ownedTemples >= TempleManager.maxTemplesPerPerson && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
+			TempleManager.tellPlayer(p, "You already own the maximum amount of Temples allowed.");
+			return false;
+		}
+		
+		if(temple != null){
+			TempleManager.tellPlayer(p, "Temple \""+templeName+"\" already exists");
+			return false;
+		}
+		
+		if(tp.currentTemple != null){
+			TempleManager.tellPlayer(p, "Please leave the current Temple before attempting to create another.");
+			return false;
+		}
+		
+		for(char c : templeName.toCharArray()){
+			if(!Character.isLetterOrDigit(c)){
+				TempleManager.tellPlayer(p, "You may only name a temple using letters or numbers.");
+				return false;
+			}
+		}
+		
+    	temple = new Temple(templeName);
+    	tp.ownedTemples++;
+    	temple.addOwner(p.getName());
+		
+		if(!edit)
+			return true;
+		
+    	editTemple(p, temple);
     	
-        Location p1 = temple.p1;
-        Location p2 = temple.p2;
+    	return true;
+	}
+
+	public static void editTemple(Player p, Temple temple) {		
+		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+		
+		if(!temple.accessorSet.contains(p.getName()) && !temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
+			TempleManager.tellPlayer(p, "You do not have permission to edit this temple.");
+			return;
+		}
+		
+		if(tp.currentTemple != null && tp.currentTemple != temple){
+			TempleManager.tellPlayer(p, "Please leave the current Temple before attempting to edit another.");
+			return;
+		}
+		
+		
+		World EditWorld = temple.loadTemple("Edit");
+		
+		if(EditWorld == null)
+			return;
+		
+		// Only clears and loads Temple if no one is already editing
+		if(temple.editorSet.isEmpty()){
+			TempleManager.templeEditMap.put(temple.templeName,EditWorld);
+			EditWorld.setTime(8000);
+			EditWorld.setStorm(false);
+		}
+		temple.editorSet.add(p);
+		tp.currentTemple = temple;
+		if(!TCUtils.hasPlayerInventory(p.getName()))
+			TCUtils.keepPlayerInventory(p);
+		if(!TempleManager.locationMap.containsKey(p))
+			TempleManager.locationMap.put(p, p.getLocation());
+		teleportToWorld(EditWorld, temple, p);
+		p.setGameMode(GameMode.CREATIVE);
+	}
+	
+	public static void convertTemple(Player p, Temple temple) {
+		File tcffile = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName+TempleCraft.fileExtention);
+		File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName);
+			
+		String worldName = getNextAvailableTempWorldName("Edit");
+		
+		World ConvertWorld = null;
+		if(file.exists()){
+			TCRestore.loadTemple(worldName, temple);
+			ConvertWorld = TempleManager.server.createWorld(worldName, Environment.NORMAL);
+		} else if(tcffile.exists()){
+			ConvertWorld = TempleManager.server.createWorld(worldName, Environment.NORMAL, new TempleWorldGenerator());
+			TCRestore.loadTemple(new Location(ConvertWorld,0,0,0), temple);
+		}
+		
+		if(ConvertWorld == null)
+			return;
+		
+		ConvertWorld.setAutoSave(false);
+		ConvertWorld.setKeepSpawnInMemory(false);
+		
+		temple.coordBlockSet.addAll(TCRestore.getSignificantBlocks(temple, ConvertWorld));
+		temple.saveTemple(ConvertWorld, p);
+		deleteTempWorld(ConvertWorld);
+	}
+	
+	public static void removeTemple(Temple temple) {		
+        String fileName = "plugins/TempleCraft/SavedTemples/"+temple.templeName;
+        //Remove all files associated with the temple
+        try {
+            File folder = new File(fileName);
+            deleteFolder(folder);
+	    } catch (SecurityException e) {
+	    	System.err.println("Unable to delete " + fileName + "("+ e.getMessage() + ")");
+	    }
         
-        if(loc.getBlockX() > p2.getX())
-			p2.setX(loc.getBlockX());
-        if(loc.getBlockZ() > p2.getZ())
-			p2.setZ(loc.getBlockZ());
-        if(loc.getBlockX() < p1.getX())
-			p1.setX(loc.getBlockX());
-        if(loc.getBlockZ() < p1.getZ())
-			p1.setZ(loc.getBlockZ());
+		TempleManager.templeSet.remove(temple);
+	}
+	
+	public static void deleteTempWorld(World w){
+		if(w == null)
+			return;
+		File folder = new File(w.getName());
+		for(Entity e : w.getEntities())
+			e.remove();
+		TempleManager.server.unloadWorld(w, true);
+		if(folder.exists())
+			deleteFolder(folder);
+	}
+	
+	public static void deleteTempWorlds(){
+		for(World w : TempleManager.server.getWorlds())
+			if(TCUtils.isTCWorld(w))
+				deleteTempWorld(w);
+	}
+	
+	private static void deleteFolder(File folder) {
+		try{
+			for(File f : folder.listFiles()){
+				if(f.isDirectory())
+					deleteFolder(f);
+				else
+					f.delete();
+			}
+			folder.delete();
+		}catch(Exception e){
+			System.out.println(e.getMessage());
+		}
+	}
+    
+    /* ///////////////////////////////////////////////////////////////////// //
+    
+    		GAME METHODS
+
+	// ///////////////////////////////////////////////////////////////////// */
+	
+	public static void newGameCommand(Player p, String[] args){
+		Temple temple;
+		String gameName;
+		String mode;
+		
+		if(args.length < 2){
+			TempleManager.tellPlayer(p, "Incorrect number of arguements.");
+			return;
+		} else if(args.length < 3){
+			temple = getTempleByName(args[1]);
+			mode = "adventure";
+			gameName = getUniqueGameName(args[1], mode);
+		} else {
+			temple = getTempleByName(args[1]);
+			mode = args[2].toLowerCase();
+			gameName = getUniqueGameName(args[1], mode);
+		}
+		
+		// Check the validity of the arguements
+		if(temple == null){
+			TempleManager.tellPlayer(p, "Temple \""+args[1]+"\" does not exist");
+			return;
+		}
+		
+		if(!temple.isSetup){
+			TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" is not setup");
+			return;
+		}
+		
+		if(!TempleManager.modes.contains(mode)){
+			TempleManager.tellPlayer(p, "Mode \""+mode+"\" does not exist");
+			return;
+		}
+		
+		// Checks to make sure the world that will be created does not already exist
+		World world = TempleManager.server.getWorld(gameName);
+		if(world != null)
+			deleteTempWorld(world);
+		
+		newGame(gameName,temple,mode);
+		TempleManager.tellPlayer(p, "New game \""+gameName+"\" created");
+	}
+
+	public static Game newGame(String name, Temple temple, String mode){
+		if(temple == null)
+			return null;
+		
+		Game game;
+		
+		World world = temple.loadTemple("Temple");
+		if(mode.equals("adventure")){
+			game = new Adventure(name, temple, world);
+		} else if(mode.equals("zombies")){
+			game = new Zombies(name, temple, world);
+		} else if(mode.equals("spleef")){
+			game = new Spleef(name, temple, world);
+		} else {
+			game = new Adventure(name, temple, world);
+		}
+		return game;
+	}
+	
+	public static Game getGame(Entity entity){
+    	for(Game game : TempleManager.gameSet)
+    		if(game.monsterSet.contains(entity))
+   				return game;
+    	return null;
     }
+	
+    public static Game getGameByName(String gameName){
+    	for(Game game : TempleManager.gameSet)
+        	if(game.gameName.startsWith(gameName))
+        		return game;
+    	return null;
+    }
+    
+    public static Game getGameByWorld(World world){
+    	for(Game game : TempleManager.gameSet)
+        	if(game.world.equals(world))
+        		return game;
+    	return null;
+    } 
+    
+    public static String getUniqueGameName(String templeName, String mode) {
+    	String gameName = "";
+    	int i = 1;
+    	do{
+			gameName = templeName+mode.substring(0,3)+i;
+			i++;
+		}while(getGameByName(gameName) != null);
+		return gameName;
+	}
     
     /**
      * Gets the player closest to the input entity. ArrayList implementation
      * means a complexity of O(n).
      */
     
-    public static Player getClosestPlayer(Temple temple, Entity e)
+    public static Player getClosestPlayer(Game game, Entity e)
     {
         
         // Set up the comparison variable and the result.
@@ -329,7 +587,7 @@ public class TCUtils
         
         /* Iterate through the ArrayList, and update current and result every
          * time a squared distance smaller than current is found. */
-        for (Player p : temple.playerSet)
+        for (Player p : game.playerSet)
         {
             double dist = distance(p.getLocation(), e.getLocation());
             if (dist < current)
@@ -358,34 +616,6 @@ public class TCUtils
             MISC METHODS
     
     // ///////////////////////////////////////////////////////////////////// */
-    
-    public static Temple getTemple(Entity entity){
-    	for(Temple temple : TempleManager.templeSet)
-    		if(temple.monsterSet.contains(entity))
-   				return temple;
-    	return null;
-    }
-    
-    public static Temple getTempleByName(String templeName){
-    	for(Temple temple : TempleManager.templeSet)
-        	if(temple.templeName.equals(templeName))
-        		return temple;
-    	return null;
-    } 
-    
-    public static Temple getTempleByWorld(World w) {
-		for(Temple temple : TempleManager.templeSet)
-			if(TempleManager.templeEditMap.get(temple.templeName).equals(w))
-				return temple;
-		return null;
-	}
-    
-    public static Player getPlayerByName(String playerName){
-		for(Player p : TempleManager.server.getOnlinePlayers())
-			if(p.getName().equals(playerName))
-				return p;
-		return null;
-	}
     
     /**
      * Checks if there is a new update of TempleCraft and notifies the
@@ -437,23 +667,12 @@ public class TCUtils
         }
     }
     
-    /**
-     * Turns the current set of players into an array, and grabs a random
-     * element out of it.
-     */
-    public static Player getRandomPlayer()
-    {
-        Random random = new Random();
-        Object[] array = TempleManager.server.getOnlinePlayers();
-        return (Player) array[random.nextInt(array.length)];
-    }
-    
     public static void sendDeathMessage(Entity entity, Entity entity2){
-    	Temple temple = TCUtils.getTemple(entity);
+    	Game game = TCUtils.getGame(entity);
     	
     	String msg = "";
     	String killed = "";
-    	String killer = "";
+    	String killer = ""; 	
     	if(entity2 instanceof Player)
     		killer = ((Player)entity2).getDisplayName();
     		
@@ -471,47 +690,16 @@ public class TCUtils
     		killer = s.substring(0,1).toUpperCase().concat(s.substring(1, s.length()));
     	}
     	
-		for(Player p: temple.playerSet){
+		for(Player p: game.playerSet){
 			//String key = p.getName() + "." + entity.getEntityId();
 			msg = killer + ChatColor.RED + " killed " + ChatColor.WHITE + killed;
     		
-			if(temple.mobGoldMap.containsKey(entity.getEntityId()) && entity2 instanceof Player)
-				msg += ChatColor.GOLD + " (+" + temple.mobGoldMap.get(entity.getEntityId())/temple.playerSet.size() + " Gold)";
+			if(game.mobGoldMap.containsKey(entity.getEntityId()) && entity2 instanceof Player)
+				msg += ChatColor.GOLD + " (+" + game.mobGoldMap.get(entity.getEntityId())/game.playerSet.size() + " Gold)";
         	
-			temple.tellPlayer(p, msg);
+			game.tellPlayer(p, msg);
 		}
     }
-    
-    
-
-	public static void removeTemple(Temple temple) {        
-        if(temple.p1 == null || temple.p2 == null)
-			return;
-		
-        String fileName = "plugins/TempleCraft/SavedTemples/"+temple.templeName+TempleCraft.fileExtention;
-        
-        try {
-            // Construct a File object for the file to be deleted.
-            File target = new File(fileName);
-
-            if (!target.exists()) {
-              System.err.println("File " + fileName
-                  + " not present to begin with!");
-              return;
-            }
-
-            // Quick, now, delete it immediately:
-            if (target.delete())
-              System.err.println("** Deleted " + fileName + " **");
-            else
-              System.err.println("Failed to delete " + fileName);
-          } catch (SecurityException e) {
-            System.err.println("Unable to delete " + fileName + "("
-                + e.getMessage() + ")");
-          }
-        
-		TempleManager.templeSet.remove(temple);
-	}
 	
 	public static Selection getSelection(Player player){
 		Selection sel = TempleManager.worldEdit.getSelection(player);
@@ -522,92 +710,21 @@ public class TCUtils
 		return sel;
 	}
 	
-	public static void newTemple(Player p, String templeName) {		
-		Temple temple = TCUtils.getTempleByName(templeName);
-		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-		
-		if(tp.ownedTemples >= TempleManager.maxTemplesPerPerson && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
-			TempleManager.tellPlayer(p, "You already own the maximum amount of Temples allowed.");
-			return;
-		}
-		
-		if(temple != null){
-			TempleManager.tellPlayer(p, "Temple \""+templeName+"\" already exists");
-			return;
-		}
-		
-		if(tp.currentTemple != null){
-			TempleManager.tellPlayer(p, "Please leave the current Temple before attempting to create another.");
-			return;
-		}
-		
-		for(char c : templeName.toCharArray()){
-			if(!Character.isLetterOrDigit(c)){
-				TempleManager.tellPlayer(p, "You may only name a temple using letters or numbers.");
-				return;
-			}
-		}
-		
-    	temple = new Temple(templeName);
-    	tp.ownedTemples++;
-    	temple.addOwner(p.getName());
-		
-		World EditWorld = TCUtils.getEditWorld(p, temple);
-		
-		if(EditWorld == null)
-			return;
-		
-    	editTemple(p, temple);
+	public static void teleportToWorld(World world, Temple temple, Player p){
+		int ground = world.getHighestBlockYAt(-1, -1);
+		p.teleport(new Location(world, -1, ground, -1));
 	}
 
-	public static void editTemple(Player p, Temple temple) {		
-		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-		
-		if(!temple.accessorSet.contains(p.getName()) && !temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
-			TempleManager.tellPlayer(p, "You do not have permission to edit this temple.");
-			return;
-		}
-		
-		if(tp.currentTemple != null && tp.currentTemple != temple){
-			TempleManager.tellPlayer(p, "Please leave the current Temple before attempting to edit another.");
-			return;
-		}
-		
-		World EditWorld = getEditWorld(p, temple);
-		
-		if(EditWorld == null)
-			return;
-		
-		// Only clears and loads Temple if no one is already editing
-		if(temple.editorSet.isEmpty()){
-			TempleManager.clearWorld(EditWorld);
-			EditWorld.setTime(8000);
-			EditWorld.setStorm(false);
-			temple.loadTemple(EditWorld);
-		}
-		temple.editorSet.add(p);
-		tp.currentTemple = temple;
-		if(!TCUtils.hasPlayerInventory(p.getName()))
-			TCUtils.keepPlayerInventory(p);
-		if(!TempleManager.locationMap.containsKey(p))
-			TempleManager.locationMap.put(p, p.getLocation());
-		teleportToWorld(EditWorld, temple, p);
+	public static boolean isTCWorld(World world) {
+		String name = world.getName();
+		if(name.startsWith("TCEditWorld_") || name.startsWith("TCTempleWorld_"))
+			return true;
+		return false;
 	}
 	
-	public static void teleportToWorld(World world, Temple temple, Player p){
-		int[] levels = TempleManager.landLevels;
-		byte[] mats = TempleManager.landMats;
-		int ground = 128;
-		for(int i = levels.length-1; i>=0; i--){
-			if(mats[i] == 0){
-				ground = levels[i-1]+1;
-				break;
-			}
-		}
-
-		if(temple.p1 != null)
-			p.teleport(new Location(world, (temple.p1.getX()-1) , ground, (temple.p1.getZ())-1));
-		else
-			p.teleport(new Location(world, -1, ground, -1));
+	public static boolean isTCEditWorld(World world) {
+		if(world.getName().startsWith("TCEditWorld_"))
+			return true;
+		return false;
 	}
 }

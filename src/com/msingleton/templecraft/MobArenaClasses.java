@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
@@ -21,13 +22,14 @@ import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.TemplePlayer;
 import com.msingleton.templecraft.Temple;
 import com.msingleton.templecraft.TempleManager;
+import com.msingleton.templecraft.games.Game;
 
 public class MobArenaClasses extends PlayerListener{
 
 	protected static Configuration config             = null;
-	protected static boolean enabled                  = false;
+	public static boolean enabled                  = false;
 	protected static List<String> classes             = new LinkedList<String>();;
-	protected static Map<Player,String> classMap      = new HashMap<Player,String>();
+	public static Map<Player,String> classMap      = new HashMap<Player,String>();
 	protected static Map<String,String> classItemMap  = new HashMap<String,String>();
 	protected static Map<String,String> classArmorMap = new HashMap<String,String>();
 	public static final List<Material> SWORDS_TYPE    = new LinkedList<Material>();
@@ -40,7 +42,7 @@ public class MobArenaClasses extends PlayerListener{
         SWORDS_TYPE.add(Material.DIAMOND_SWORD);
     }
 	public MobArenaClasses(TempleCraft templeCraft) {
-		enabled = TCUtils.getBoolean("settings.enableclasses", false);
+		enabled = TCUtils.getBoolean(TempleManager.config, "settings.enableclasses", false);
 		if(enabled){
 			config  = TCUtils.getConfig("classes");
 			classes = getClasses();
@@ -78,8 +80,8 @@ public class MobArenaClasses extends PlayerListener{
 	        	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 	        	
 	        	// Set the player's class.
-	    		Temple temple = tp.currentTemple;
-	        	if(temple != null){
+	    		Game game = tp.currentGame;
+	        	if(game != null){
 	        		assignClass(p, Line2);
 		        	TempleManager.tellPlayer(p, "You have chosen " + Line2 + " as your class!");
 	        	}
@@ -234,11 +236,11 @@ public class MobArenaClasses extends PlayerListener{
             if(stack.getType() == Material.LEATHER_HELMET || stack.getType() == Material.IRON_HELMET || stack.getType() == Material.GOLD_HELMET || stack.getType() == Material.DIAMOND_HELMET){
             	inv.setHelmet(stack);
             } else if(stack.getType() == Material.LEATHER_CHESTPLATE || stack.getType() == Material.IRON_CHESTPLATE || stack.getType() == Material.GOLD_CHESTPLATE || stack.getType() == Material.DIAMOND_CHESTPLATE){
-		        inv.setChestplate(stack);
+            	inv.setChestplate(stack);
             } else if(stack.getType() == Material.LEATHER_LEGGINGS || stack.getType() == Material.IRON_LEGGINGS || stack.getType() == Material.GOLD_LEGGINGS || stack.getType() == Material.DIAMOND_LEGGINGS){
-		        inv.setLeggings(stack);
+            	inv.setLeggings(stack);
             } else if(stack.getType() == Material.LEATHER_BOOTS || stack.getType() == Material.IRON_BOOTS || stack.getType() == Material.GOLD_BOOTS || stack.getType() == Material.DIAMOND_BOOTS){
-		        inv.setBoots(stack);
+            	inv.setBoots(stack);
             } else {
             	System.out.println("[TempleCraft] No Armor was detected by getArmor");
             }
@@ -314,15 +316,16 @@ public class MobArenaClasses extends PlayerListener{
         return c.getKeys("classes");
     }
     
-    protected static void generateClassSigns(Sign sign) {
+    public static void generateClassSigns(Sign sign) {
 		Block b = sign.getBlock();
 		Location loc = b.getLocation();
+		World world = b.getWorld();
 		int x = loc.getBlockX();
     	int y = loc.getBlockY();
     	int z = loc.getBlockZ();
 		for (String s : classes){
-            TempleManager.world.getBlockAt(x, y, z).setTypeIdAndData(b.getTypeId(), b.getData(), false);
-            Sign classSign = (Sign) TempleManager.world.getBlockAt(x, y, z).getState();
+            world.getBlockAt(x, y, z).setTypeIdAndData(b.getTypeId(), b.getData(), false);
+            Sign classSign = (Sign) world.getBlockAt(x, y, z).getState();
            	classSign.setLine(0, "");
             classSign.setLine(1, s);
             classSign.setLine(2, "");

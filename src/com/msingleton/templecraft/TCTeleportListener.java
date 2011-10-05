@@ -23,6 +23,7 @@ public class TCTeleportListener extends PlayerListener
     {
         Player p = event.getPlayer();
         TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+        
         if (!TempleManager.playerSet.contains(p))
             return;
         
@@ -32,8 +33,9 @@ public class TCTeleportListener extends PlayerListener
         	return;
         
         Location to = event.getTo();
+        Location from = event.getFrom();
         
-        if (to.getWorld().equals(TempleManager.world))
+        if ((!TCUtils.isTCWorld(from.getWorld()) && TCUtils.isTCWorld(to.getWorld())) || to.getWorld().equals(p.getWorld()))
         {
             return;
         }
