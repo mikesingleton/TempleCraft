@@ -7,27 +7,27 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.ContainerBlock;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.PistonBaseMaterial;
 
 public class TCRestore {
 	//Blocks
@@ -40,13 +40,19 @@ public class TCRestore {
 			return;
 		
 		w.save();
-		copyDirectory(new File(w.getName()),new File("plugins/TempleCraft/SavedTemples/"+temple.templeName));
-		saveSignificantBlocks(temple);
+		File folder = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName);
+		copyDirectory(new File(w.getName()),folder);
+		saveSignificantLocs(temple);
 	}
 
 	// Copies all files under srcDir to dstDir.
 	// If dstDir does not exist, it will be created.
 	public static void copyDirectory(File srcDir, File dstDir){
+		if(srcDir.getName().equals("uid.dat") || srcDir.getName().equals("session.lock")){
+			if(dstDir.exists())
+				dstDir.delete();
+			return;
+		}
 	    if (srcDir.isDirectory()) {
 	        if (!dstDir.exists()) {
 	            dstDir.mkdir();
@@ -88,18 +94,66 @@ public class TCRestore {
 		if(!file.exists())
 			return false;
 		
-		copyDirectory(new File("plugins/TempleCraft/SavedTemples/"+temple.templeName),new File(worldName));
+		copyDirectory(file,new File(worldName));
 		return true;
 	}
 	
-	public static void saveSignificantBlocks(Temple temple){
-		if(temple == null || temple.coordBlockSet.isEmpty())
+	public static File getChunkGenerator(Temple temple){
+		File folder = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName);
+		for(File f : getFilesByExtention(folder, ".jar")){
+			ChunkGenerator cg = getChunkGenerator(f);
+			if(cg != null)
+				return f;
+		}
+		return null;
+	}
+	
+	private static Set<File> getFilesByExtention(File folder, String extention) {
+		Set<File> files = new HashSet<File>();
+		if(folder.isDirectory())
+			for(File f : folder.listFiles())
+				if(f.isDirectory())
+					files.addAll(getFilesByExtention(f,extention));
+				else if(f.getName().endsWith(extention))
+					files.add(f);
+		return files;
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static ChunkGenerator getChunkGenerator(File file){
+		try {
+			JarFile jar = new JarFile(file);
+			URL url=new URL("jar:file:"+file.getPath()+"!/");
+			URL[] urls = new URL[]{url};
+			ClassLoader cl = new URLClassLoader(urls);
+            Enumeration<JarEntry> e = jar.entries();
+        	while(e.hasMoreElements()){
+	        	JarEntry entry = e.nextElement();
+	        	String name = entry.getName();
+	        	if(name.endsWith(".class")){
+	        		if(name.contains("/"))
+	        			name = name.replace("/", ".");
+	        		Class cls = cl.loadClass(name.replace(".class", ""));
+	        		Object instance = cls.newInstance();
+	        		if(instance instanceof ChunkGenerator){
+	    				return (ChunkGenerator)instance;
+	        		}
+	        	}
+        	}
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public static void saveSignificantLocs(Temple temple){
+		if(temple == null || temple.coordLocSet.isEmpty())
 			return;
 		
 		HashSet<EntityPosition> significantLocs = new HashSet<EntityPosition>();
 		
-		for(Block b : temple.coordBlockSet)
-			significantLocs.add(new EntityPosition(b.getLocation()));
+		for(Location loc : temple.coordLocSet)
+			significantLocs.add(new EntityPosition(loc));
 		
 		try
 	    {	
@@ -140,18 +194,19 @@ public class TCRestore {
         catch (Exception e)
         {
             System.out.println("[TempleCraft] TempleCraft file not found for this temple.");
+            return significantEPs;
         }
 
         return significantEPs;
 	}
 	
-	public static HashSet<Block> getSignificantBlocks(Temple temple, World world){					
-		HashSet<Block> significantBlocks = new HashSet<Block>();
+	public static HashSet<Location> getSignificantLocs(Temple temple, World world){					
+		HashSet<Location> significantLocs = new HashSet<Location>();
 		
         for(EntityPosition ep : getSignificantEPs(temple))
-			significantBlocks.add(world.getBlockAt((int)ep.getX(),(int)ep.getY(),(int)ep.getZ()));
+			significantLocs.add(ep.getLocation(world));
         
-        return significantBlocks;
+        return significantLocs;
 	}
 	
 	
@@ -235,7 +290,7 @@ public class TCRestore {
 				b.getRelative(0,1,0).setTypeIdAndData(id,(byte) (data+8), true);
 			// If it's a sign, add the text
 			} else if(b.getState() instanceof Sign){
-				temple.coordBlockSet.add(b);
+				temple.coordLocSet.add(loc);
         		if(s.length > 2){
         			for(int i = 2; i<s.length;i++){
         				if((i-2)>3 || (i-2)<0 || s[i] == null)
@@ -250,7 +305,7 @@ public class TCRestore {
 					contentsFromString((ContainerBlock)b.getState(), s[2]);
         	// If it's diamond,gold or iron or bedrock, add it to coordBlockSet
         	} else if(b.getTypeId() == Temple.goldBlock || b.getTypeId() == Temple.diamondBlock || b.getTypeId() == Temple.ironBlock || b.getTypeId() == Temple.mobSpawner){
-        		temple.coordBlockSet.add(b);
+        		temple.coordLocSet.add(loc);
         	}
         }
 	}

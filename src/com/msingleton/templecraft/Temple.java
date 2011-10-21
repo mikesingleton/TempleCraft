@@ -1,5 +1,7 @@
 package com.msingleton.templecraft;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -8,26 +10,26 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.util.config.Configuration;
-
-import com.sk89q.worldedit.data.Chunk;
-
+import org.bukkit.generator.ChunkGenerator;
 
 public class Temple {
-	protected Configuration config = null;
+	protected File config;
     
     // Convenience variables.
-    public String templeName     = null;
-    public boolean isSetup       = false;
-    protected boolean isEnabled  = true; 
-    protected String owners  = "";
-    protected String editors = "";
+    public String templeName;
+    public boolean isSetup;
+    protected boolean isEnabled;
+    protected String owners;
+    protected String editors;
+    protected File ChunkGeneratorFile;
     
     // Sets and Maps for storing players and their locations.
-    protected Set<Player> playerSet     = new HashSet<Player>();
+    protected Set<Player> playerSet   = new HashSet<Player>();
     protected Set<String> ownerSet    = new HashSet<String>();
     protected Set<String> accessorSet = new HashSet<String>();
     protected Set<Player> editorSet   = new HashSet<Player>();
@@ -36,7 +38,7 @@ public class Temple {
     public static int diamondBlock = 57;
     public static int ironBlock = 42;
     public static int goldBlock = 41;
-    public Set<Block> coordBlockSet  = new HashSet<Block>();
+    public Set<Location> coordLocSet  = new HashSet<Location>();
     public static int[] coordBlocks = {mobSpawner, diamondBlock, ironBlock, goldBlock, 63, 68};
     
 	protected Temple(){
@@ -45,9 +47,12 @@ public class Temple {
 	protected Temple(String name){		
 		config     = TCUtils.getConfig("temples");
 		templeName = name;
+		//Fix isSetup and Class item things
 		owners     = TCUtils.getString(config,"Temples."+name+".owners", "");
 		editors    = TCUtils.getString(config,"Temples."+name+".editors", "");
 		isSetup    = TCUtils.getBoolean(config,"Temples."+name+".isSetup", false);
+		isEnabled  = true;
+		ChunkGeneratorFile = TCRestore.getChunkGenerator(this);
 		loadEditors();
 		TempleManager.templeSet.add(this);
 	}
@@ -61,30 +66,57 @@ public class Temple {
 	public World loadTemple(String type){
 		World result;
 		
-		String worldName = TCUtils.getNextAvailableTempWorldName(type);
+		String worldName;
+		if(TempleManager.constantWorldNames)
+			worldName = "TCTempleWorld_"+templeName;
+		else
+			worldName = TCUtils.getNextAvailableTempWorldName(type);
 		
-		// Checks to make sure the world that will be created does not already exist
+		if(worldName == null)
+			return null;
+		
+		// if the world already exists and it can not be deleted (i.e. it contains players) return null
 		World world = TempleManager.server.getWorld(worldName);
-		if(world != null)
-			TCUtils.deleteTempWorld(world);
+		if(world != null && !TCUtils.deleteTempWorld(world))
+			return null;
 		
-		if(TCRestore.loadTemple(worldName, this)){
-    		result = TempleManager.server.createWorld(worldName, Environment.NORMAL);
+		File tcffile = new File("plugins/TempleCraft/SavedTemples/"+templeName+TempleCraft.fileExtention);
+		
+		WorldCreator wc = new WorldCreator(worldName);
+		wc.environment(Environment.NORMAL);
+		// if the tcf file doesn't exist
+		if(TCRestore.loadTemple(worldName, this) || !tcffile.exists()){
+			if(ChunkGeneratorFile != null){
+				ChunkGenerator cg = TCRestore.getChunkGenerator(ChunkGeneratorFile);
+				if(cg != null)
+					wc.generator(cg);
+			}
+    		result = TempleManager.server.createWorld(wc);
     		System.out.println("[TempleCraft] World \""+worldName+"\" Loaded!");
-		} else if(type.equals("Edit")){
-			result = TempleManager.server.createWorld(worldName, Environment.NORMAL, new TempleWorldGenerator());
+		} else if(type.equals("Edit") || type.equals("Convert")){
+			File file = new File("plugins/TempleCraft/SavedTemples/"+templeName);
+			file.mkdir();
+			TCUtils.copyFromJarToDisk("Flat1.jar", file);
+			ChunkGeneratorFile = new File("plugins/TempleCraft/SavedTemples/"+templeName+"/Flat1.jar");
+			ChunkGenerator cg = TCRestore.getChunkGenerator(ChunkGeneratorFile);
+			wc.generator(cg);
+			result = TempleManager.server.createWorld(wc);
 			TCRestore.loadTemple(new Location(result,0,0,0), this);
 		} else {
 			return null;
 		}
 		
-		if(result != null && type.equals("Edit"))
-			TempleManager.templeEditMap.put(templeName, result);
+		if(result == null)
+			return null;
 		
-		result.setAutoSave(false);
+		if(type.equals("Edit"))
+			TempleManager.templeEditMap.put(templeName, result);
+		else
+			result.setAutoSave(false);
+		
 		result.setKeepSpawnInMemory(false);
 		
-		coordBlockSet = TCRestore.getSignificantBlocks(this, result);
+		coordLocSet.addAll(TCRestore.getSignificantLocs(this, result));
 		return result;
 	}
 
@@ -92,7 +124,7 @@ public class Temple {
 	    TempleManager.tellPlayer(p, "Saving World...");
 		TCRestore.saveTemple(w, this);
 		
-		isSetup = trySetup();
+		isSetup = trySetup(w);
 		if(TCUtils.getBoolean(config,"Temples."+templeName+".isSetup", isSetup) != isSetup){
 			TCUtils.setBoolean(config,"Temples."+templeName+".isSetup", isSetup);
 			if(isSetup)
@@ -102,6 +134,17 @@ public class Temple {
 		} else if(!isSetup){
 			TempleManager.tellPlayer(p, templeName+" is "+ChatColor.DARK_RED+"not Setup yet");
 		}
+		
+		// ChunkGenerator
+		if(ChunkGeneratorFile != null){
+			File destination = new File("plugins/TempleCraft/SavedTemples/"+templeName+"/"+ChunkGeneratorFile.getName());
+			if(!destination.exists()){
+				File folder = new File("plugins/TempleCraft/SavedTemples/"+templeName);
+				folder.mkdir();
+				TCRestore.copyFile(ChunkGeneratorFile, destination);
+			}
+		}
+		
 		TempleManager.tellPlayer(p, "Temple Saved");
 	}
 	
@@ -171,15 +214,19 @@ public class Temple {
     	this.owners = owners.toString();
     	this.editors = editors.toString();
     	
-    	saveConfig();
+    	
+    	try {
+			saveConfig();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
-	protected void saveConfig(){
-		Configuration c = config;
-    	c.load();
-    	c.setProperty("Temples."+templeName+".owners", owners);    	
-    	c.setProperty("Temples."+templeName+".editors", editors);
-    	c.save();
+	protected void saveConfig() throws IOException{
+		YamlConfiguration c = YamlConfiguration.loadConfiguration(config);
+    	c.set("Temples."+templeName+".owners", owners);    	
+    	c.set("Temples."+templeName+".editors", editors);
+    	c.save(config);
 	}
 	
 	/* ///////////////////////////////////////////////////////////////////// //
@@ -189,11 +236,21 @@ public class Temple {
 	// ///////////////////////////////////////////////////////////////////// */
 
 	
-	public boolean trySetup(){		
+	public boolean trySetup(World w){		
 		boolean foundLobbyLoc = false;
 		boolean foundTempleLoc = false;
 
-		for(Block b: getBlockSet(Material.WALL_SIGN.getId())){
+		for(Block b: getBlockSet(w,Material.WALL_SIGN.getId())){
+			if(foundLobbyLoc && foundTempleLoc)
+				break;
+			
+	        Sign sign = (Sign) b.getState();
+	        if(!foundLobbyLoc)
+	        	foundLobbyLoc = checkSign("lobby", sign);
+	        if(!foundTempleLoc)
+	        	foundTempleLoc = checkSign("spawnarea", sign);
+		}
+		for(Block b: getBlockSet(w,Material.SIGN_POST.getId())){     
 			if(foundLobbyLoc && foundTempleLoc)
 				break;
 	        Sign sign = (Sign) b.getState();
@@ -202,16 +259,7 @@ public class Temple {
 	        if(!foundTempleLoc)
 	        	foundTempleLoc = checkSign("spawnarea", sign);
 		}
-		for(Block b: getBlockSet(Material.SIGN_POST.getId())){     
-			if(foundLobbyLoc && foundTempleLoc)
-				break;
-	        Sign sign = (Sign) b.getState();
-	        if(!foundLobbyLoc)
-	        	foundLobbyLoc = checkSign("lobby", sign);
-	        if(!foundTempleLoc)
-	        	foundTempleLoc = checkSign("spawnarea", sign);
-		}
-		for(Block b: getBlockSet(diamondBlock)){
+		for(Block b: getBlockSet(w,diamondBlock)){
 			if(foundTempleLoc)
 				break;
     		Block rb = b.getRelative(0, -1, 0);
@@ -224,7 +272,27 @@ public class Temple {
 		return isSetup;
 	}
 	
+	public Location getLobbyLoc(World w){		
+		for(Block b: getBlockSet(w,Material.WALL_SIGN.getId())){			
+	        Sign sign = (Sign) b.getState();
+	        String[] Lines = sign.getLines();
+	        if(Lines[0].equals("[TC]") || Lines[0].equals("[TempleCraft]"))
+	        	if(Lines[1].toLowerCase().equals("lobby"))
+	        		return b.getLocation();
+		}
+		for(Block b: getBlockSet(w,Material.SIGN_POST.getId())){     
+	        Sign sign = (Sign) b.getState();
+	        String[] Lines = sign.getLines();
+	        if(Lines[0].equals("[TC]") || Lines[0].equals("[TempleCraft]"))
+	        	if(Lines[1].toLowerCase().equals("lobby"))
+	        		return b.getLocation();
+		}
+		return null;
+	}
+	
 	private boolean checkSign(String key, Sign sign) {
+		if(sign == null)
+			return false;
 		String[] Lines = sign.getLines();
 		if(!Lines[0].equals("[TC]") && !Lines[0].equals("[TempleCraft]"))
 			return false;
@@ -235,13 +303,15 @@ public class Temple {
 		return false;
 	}
 	
-	private Set<Block> getBlockSet(int id){
+	private Set<Block> getBlockSet(World world, int id){
 	    Set<Block> result = new HashSet<Block>();
 
-	    if(!coordBlockSet.isEmpty())
-	    	for(Block b : coordBlockSet)
+	    if(!coordLocSet.isEmpty())
+	    	for(Location loc : coordLocSet){
+	    		Block b = world.getBlockAt(loc);
 	    		if(b.getTypeId() == id)
 	    			result.add(b);
+	    	}
 
 	    return result;
 	}

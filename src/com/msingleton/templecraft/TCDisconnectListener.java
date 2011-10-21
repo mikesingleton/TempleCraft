@@ -23,7 +23,6 @@ public class TCDisconnectListener extends PlayerListener
     		return;
     	
     	Player p = event.getPlayer();
-    	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		if(TCUtils.hasPlayerInventory(p.getName()))
 			TCUtils.restorePlayerInventory(p);
 		if (TempleManager.playerSet.contains(p))
@@ -38,7 +37,6 @@ public class TCDisconnectListener extends PlayerListener
     		return;
     	
     	Player p = event.getPlayer();
-    	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		if(TCUtils.hasPlayerInventory(p.getName()))
 			TCUtils.restorePlayerInventory(p);
 		if (TempleManager.playerSet.contains(p))

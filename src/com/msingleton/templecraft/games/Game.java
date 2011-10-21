@@ -1,6 +1,5 @@
 package com.msingleton.templecraft.games;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -8,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Chunk;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -21,13 +20,10 @@ import org.bukkit.entity.Player;
 
 import com.msingleton.templecraft.MobArenaClasses;
 import com.msingleton.templecraft.TCMobHandler;
-import com.msingleton.templecraft.TCRestore;
 import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.Temple;
-import com.msingleton.templecraft.TempleCraft;
 import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.TemplePlayer;
-import com.nijikokun.register.payment.Method.MethodAccount;
 
 public class Game{
 	public World world;
@@ -57,11 +53,11 @@ public class Game{
     public Set<Player> deadSet       = new HashSet<Player>();
     public Set<LivingEntity> monsterSet = new HashSet<LivingEntity>();
 	
-    public Set<Block> coordBlockSet = new HashSet<Block>();
-    public Set<Block> startBlockSet = new HashSet<Block>();
-    public Set<Block> endBlockSet   = new HashSet<Block>();
-    public Set<Block> lobbyBlockSet = new HashSet<Block>();
+    public Set<Location> coordLocSet = new HashSet<Location>();
     public Set<Block> tempBlockSet  = new HashSet<Block>();
+    public Set<Location> startLocSet = new HashSet<Location>();
+    public Set<Location> endLocSet   = new HashSet<Location>();
+    public Set<Location> lobbyLocSet = new HashSet<Location>();
     
     public static int mobSpawner = 7;
     public static int diamondBlock = 57;
@@ -75,7 +71,7 @@ public class Game{
 		this.world    = world;
 		this.temple   = temple;
 		isSetup       = temple.isSetup;
-		coordBlockSet = temple.coordBlockSet;
+		coordLocSet = temple.coordLocSet;
 		rejoinCost    = TempleManager.rejoinCost;
 	} 
 
@@ -96,11 +92,15 @@ public class Game{
 	private void convertLobby(){
 		for(Block b: getBlockSet(Material.WALL_SIGN.getId())){     
 	        // Cast the block to a sign to get the text on it.
-	        Sign sign = (Sign) b.getState();
+			if(!(b.getState() instanceof Sign))
+				continue;
+			Sign sign = (Sign) b.getState();
 	        handleSign(sign);
 		}
 		for(Block b: getBlockSet(Material.SIGN_POST.getId())){     
 	        // Cast the block to a sign to get the text on it.
+			if(!(b.getState() instanceof Sign))
+				continue;
 	        Sign sign = (Sign) b.getState();
 	        handleSign(sign);
 		}
@@ -108,11 +108,11 @@ public class Game{
 		for(Block b: getBlockSet(goldBlock)){
     		Block rb = b.getRelative(0, -1, 0);
     		if(rb.getTypeId() == ironBlock){
-    			lobbyBlockSet.add(rb);
+    			lobbyLocSet.add(rb.getLocation());
     			b.setTypeId(0);
     			rb.setTypeId(ironBlock);
     		} else {
-    			temple.coordBlockSet.remove(b);
+    			temple.coordLocSet.remove(b);
     		}
 		}
 	}
@@ -123,7 +123,7 @@ public class Game{
 		
 		
 		if(!Lines[0].equals("[TempleCraft]") && !Lines[0].equals("[TC]")){
-			temple.coordBlockSet.remove(b);
+			temple.coordLocSet.remove(b);
 			return;			
 		}
 		
@@ -167,15 +167,15 @@ public class Game{
 	    for(Block b: getBlockSet(diamondBlock)){
     		Block rb = b.getRelative(0, -1, 0);
     		if(rb.getTypeId() == ironBlock){
-    			startBlockSet.add(rb);
+    			startLocSet.add(rb.getLocation());
     			b.setTypeId(0);
     			rb.setTypeId(0);
     		} else if(rb.getTypeId() == goldBlock){
-    			endBlockSet.add(rb);
+    			endLocSet.add(rb.getLocation());
     			b.setTypeId(0);
     			rb.setTypeId(goldBlock);
     		} else {
-    			temple.coordBlockSet.remove(b);
+    			temple.coordLocSet.remove(b);
     		}
 		}
 	}
@@ -183,10 +183,12 @@ public class Game{
 	private Set<Block> getBlockSet(int id){
 	    Set<Block> result = new HashSet<Block>();
 
-	    if(!coordBlockSet.isEmpty())
-	    	for(Block b : coordBlockSet)
+	    if(!coordLocSet.isEmpty())
+	    	for(Location loc : coordLocSet){
+	    		Block b = world.getBlockAt(loc);
 	    		if(b.getTypeId() == id)
 	    			result.add(b);
+	    	}
 
 	    return result;
 	}
@@ -279,10 +281,10 @@ public class Game{
 		tp.currentGame = this;
 		tp.currentCheckpoint = null;
 		TempleManager.playerSet.add(p);
-		convertLobby();
 		playerSet.add(p);
 		
 		if(world.getPlayers().isEmpty()){
+			convertLobby();
 			world.setTime(8000);
 			world.setStorm(false);
 		}
@@ -297,9 +299,9 @@ public class Game{
 		p.setFoodLevel(20);
 		p.setExperience(0);
 		
-		//convertLobby();
 		p.teleport(lobbyLoc);
 		tellPlayer(p, "You joined "+temple.templeName+". Have fun!");
+		p.setGameMode(GameMode.SURVIVAL);
 	}
 	
 	/**

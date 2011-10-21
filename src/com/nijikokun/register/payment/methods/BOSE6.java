@@ -65,7 +65,7 @@ public class BOSE6 implements Method {
     public void setPlugin(Plugin plugin) {
         BOSEconomy = (BOSEconomy)plugin;
     }
-
+    @SuppressWarnings("deprecation")
     public class BOSEAccount implements MethodAccount {
         private final String name;
         private final BOSEconomy BOSEconomy;
@@ -75,7 +75,7 @@ public class BOSE6 implements Method {
             this.BOSEconomy = bOSEconomy;
         }
 
-        public double balance() {
+		public double balance() {
             return (double) this.BOSEconomy.getPlayerMoney(this.name);
         }
 
@@ -128,6 +128,7 @@ public class BOSE6 implements Method {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public class BOSEBankAccount implements MethodBankAccount {
         private final String bank;
         private final BOSEconomy BOSEconomy;

@@ -5,11 +5,8 @@ import java.util.Set;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
-import org.bukkit.entity.CreatureType;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
@@ -61,9 +58,6 @@ public class TCPlayerListener  extends PlayerListener{
         
         Block b = event.getClickedBlock();
         
-        if(b == null)
-        	return;
-        
         // Break wool instantly if playing Spleef
         if(game != null && a.equals(Action.LEFT_CLICK_BLOCK))
         	if(game instanceof Spleef)
@@ -71,35 +65,6 @@ public class TCPlayerListener  extends PlayerListener{
         			((Spleef)game).brokenBlockMap.put(b.getLocation(), b.getTypeId()+":"+b.getData());
         			b.setTypeId(0);
         		}
-        
-        // if player clicks on a significant block while editing, record it
-    	if(TCUtils.isTCEditWorld(p.getWorld()) && p.getItemInHand().getTypeId() == 0){
-    		Temple temple = TCUtils.getTempleByWorld(p.getWorld());
-	    	for(int i : Temple.coordBlocks){
-	    		if(b.getTypeId() == i){
-	    			if(a.equals(Action.LEFT_CLICK_BLOCK)){
-	    				if(!temple.coordBlockSet.contains(b)){
-	    					TempleManager.tellPlayer(p, "This block has now been logged");
-	    					temple.coordBlockSet.add(b);
-    					}
-	    			}
-	    			if(a.equals(Action.RIGHT_CLICK_BLOCK)){
-	    				p.sendMessage(ChatColor.GREEN+"------TCBlock Info------");
-	    				String msg = getTypeMsg(temple, b);
-	    				if(msg == null){
-	    					temple.coordBlockSet.remove(b);
-	    					msg = "Not found; Unlogged";
-	    				} else {
-	    					temple.coordBlockSet.add(b);
-	    				}
-	    				p.sendMessage("Type: "+getTypeMsg(temple, b));
-	    				p.sendMessage("Logged: "+getLoggedMsg(temple, b));
-	    				p.sendMessage("Location: "+getLocationMsg(b));
-	    			}
-	    		}
-    		}
-    		return;
-    	} 	
     	
         // Signs
         if (b.getState() instanceof Sign){   
@@ -118,42 +83,56 @@ public class TCPlayerListener  extends PlayerListener{
         	return;
         
         // Start Block
-        if (game.lobbyBlockSet.contains(b)){
+        if (game.lobbyLocSet.contains(b.getLocation())){
         	if(!game.usingClasses || MobArenaClasses.classMap.containsKey(p)){
 	        	if(!game.isRunning){
 		            game.tellPlayer(p, "You have been flagged as ready!");
 		            game.playerReady(p);
-	        	} else {
+		         // If a method is installed
+	        	} else if(TempleCraft.method != null){	        		
 	        		MethodAccount balance = TempleCraft.method.getAccount(p.getName());
-	        		if(TempleCraft.method == null || balance.hasEnough(game.rejoinCost)){
-	    				game.deadSet.remove(p);
-	    				if(tp.currentCheckpoint != null)
-	    					p.teleport(tp.currentCheckpoint);
-	    				else
-	    					p.teleport(game.getPlayerSpawnLoc());
-	    				
-	    				if(!game.usingClasses){
-		    				if(TCUtils.hasPlayerInventory(p.getName()))
-		    					TCUtils.restorePlayerInventory(p);
-		    				TCUtils.keepPlayerInventory(p);
-		    				p.setHealth(20);
-	    				}
-	    				
-	    				// If a method is installed, subtract money from account
-	    				if(TempleCraft.method != null && game.rejoinCost > 0){
+	        		// if player has enough money subtract money from account
+	        		if(balance.hasEnough(game.rejoinCost)){    				
+	    				if(game.rejoinCost > 0){
 	    					String msg = ChatColor.GOLD + "" + game.rejoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
 	    					game.tellPlayer(p, msg);
 	    					balance.subtract(game.rejoinCost);
 		            	}
+	    				
+	    				game.deadSet.remove(p);
+		        		if(tp.currentCheckpoint != null)
+							p.teleport(tp.currentCheckpoint);
+						else
+							p.teleport(game.getPlayerSpawnLoc());
+		        		
+		        		if(!game.usingClasses){
+		    				if(TCUtils.hasPlayerInventory(p.getName()))
+		    					TCUtils.restorePlayerInventory(p);
+		    				TCUtils.keepPlayerInventory(p);
+		    				p.setHealth(20);
+						}
 	        		} else {
 	        			TempleManager.tellPlayer(p, "You do not have enough gold to rejoin.");
 	        		}
+	        	} else {
+	        		game.deadSet.remove(p);
+	        		if(tp.currentCheckpoint != null)
+						p.teleport(tp.currentCheckpoint);
+					else
+						p.teleport(game.getPlayerSpawnLoc());
+	        		
+	        		if(!game.usingClasses){
+	    				if(TCUtils.hasPlayerInventory(p.getName()))
+	    					TCUtils.restorePlayerInventory(p);
+	    				TCUtils.keepPlayerInventory(p);
+	    				p.setHealth(20);
+					}
 	        	}
         	} else {
         		game.tellPlayer(p, "You must pick a class first!");
         	}
         // End Block
-        } else if (game.endBlockSet.contains(b) && b.getTypeId() == 41){
+        } else if (game.endLocSet.contains(b.getLocation()) && b.getTypeId() == 41){
             if (game.playerSet.contains(p))
             {
             	game.readySet.add(p);
@@ -171,80 +150,6 @@ public class TCPlayerListener  extends PlayerListener{
         }
 	}
 
-	private String getLoggedMsg(Temple temple, Block b) {
-		 if(temple.coordBlockSet.contains(b))
-			return ChatColor.GREEN+"true";
-		else
-			return ChatColor.RED+"false";
-	}
-
-	// Finds what the block will convert to and block is unlogged if no type is found
-	private String getTypeMsg(Temple temple, Block b) {
-		if(b.getType().equals(Material.WALL_SIGN) || b.getType().equals(Material.SIGN_POST)){
-			Sign sign = (Sign)b.getState();
-			String Line1 = sign.getLine(0);
-			String Line2 = sign.getLine(1).toLowerCase();
-			String Line3 = sign.getLine(2).toLowerCase();
-			String Line4 = sign.getLine(3).toLowerCase();
-			if(Line1.equals("[TC]") || Line1.equals("[TempleCraft]")){
-    			if(Line2.equals("lobby"))
-    				return "TCSign"+ChatColor.GRAY+"(LobbySpawnPoint)";
-    			if(Line2.equals("classes"))
-    				return "TCSign"+ChatColor.GRAY+"(ClassSignsSpawnpoint)";
-    			String s = Line2+Line3+Line4;
-    			for(String mob : TempleManager.mobs)
-    				if(s.toLowerCase().contains(mob.toLowerCase())){
-    					return "TCSign"+ChatColor.GREEN+"("+mob+"Spawnpoint)";
-    				}	
-			}
-			if(Line1.equals("[TCM]"))
-    			return "TCMSign"+ChatColor.GRAY+"(Message/Command)";
-    			
-    		temple.coordBlockSet.remove(b);
-    		return null;
-		}
-
-		Block rb;
-		if(b.getTypeId() == Temple.diamondBlock){
-    		rb = b.getRelative(0, -1, 0);
-    		if(rb.getTypeId() == Temple.ironBlock)
-    			return "PlayerSpawnBlock"+ChatColor.AQUA+"(Diamond)";
-    		rb = b.getRelative(0, -1, 0);
-    		if(rb.getTypeId() == Temple.goldBlock)
-    			return "EndBlock"+ChatColor.AQUA+"(Diamond)";
-    		
-			temple.coordBlockSet.remove(b);
-			return null;
-		}
-		
-		if(b.getTypeId() == Temple.goldBlock){
-    		rb = b.getRelative(0, -1, 0);
-    		if(rb.getTypeId() == Temple.ironBlock)
-    			return "StartBlock"+ChatColor.GOLD+"(Gold)";
-    		rb = b.getRelative(0, 1, 0);
-    		if(rb.getTypeId() == Temple.diamondBlock)
-    			return "EndBlock"+ChatColor.GOLD+"(Gold)";
-    		temple.coordBlockSet.remove(b);
-    		return null;
-		}
-		
-		if(b.getTypeId() == Temple.ironBlock){
-    		rb = b.getRelative(0, 1, 0);
-    		if(rb.getTypeId() == Temple.goldBlock)
-    			return "StartBlock"+ChatColor.GRAY+"(Iron)";
-    		rb = b.getRelative(0, 1, 0);
-    		if(rb.getTypeId() == Temple.diamondBlock)
-    			return "PlayerSpawnBlock"+ChatColor.GRAY+"(Iron)";
-    		return null;
-		}
-		
-		return null;
-	}
-	
-	private String getLocationMsg(Block b) {
-		return "("+b.getX()+","+b.getY()+","+b.getZ()+")";
-	}
-	
 	public void onPlayerMove(PlayerMoveEvent event){
 		Player p = event.getPlayer();
 		
@@ -325,7 +230,7 @@ public class TCPlayerListener  extends PlayerListener{
 		String Line1 = sign.getLine(0);
         String Line2 = sign.getLine(1);
         String Line3 = sign.getLine(2);
-        String Line4 = sign.getLine(3);
+        //String Line4 = sign.getLine(3);
         
         if(TempleManager.playerSet.contains(p) || TCUtils.isTCEditWorld(p.getWorld()))
         	return;
@@ -357,7 +262,7 @@ public class TCPlayerListener  extends PlayerListener{
     	}
     	
     	for(Game game : TempleManager.gameSet){
-    		if(!game.isRunning && game.temple.equals(temple) && game.getClass().toString().toLowerCase().equals(mode)){
+    		if(!game.isRunning && game.temple.equals(temple) && game.getClass().getName().toLowerCase().equals(mode)){
     			game.playerJoin(p);
     			return;
     		}
@@ -402,7 +307,7 @@ public class TCPlayerListener  extends PlayerListener{
         
         if (!TempleManager.isEnabled)
         {
-            event.getBlockClicked().getFace(event.getBlockFace()).setTypeId(0);
+            event.getBlockClicked().setTypeId(0);
             event.setCancelled(true);
             return;
         }
@@ -410,7 +315,7 @@ public class TCPlayerListener  extends PlayerListener{
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		Game game = tp.currentGame;
 
-        Block liquid = event.getBlockClicked().getFace(event.getBlockFace());
+        Block liquid = event.getBlockClicked();
         if(game.playerSet.contains(p))
         	game.tempBlockSet.add(liquid);
     }

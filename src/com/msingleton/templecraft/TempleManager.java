@@ -1,27 +1,19 @@
 package com.msingleton.templecraft;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
-import org.bukkit.World.Environment;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.util.config.Configuration;
 
 
 import com.msingleton.templecraft.games.Game;
@@ -38,9 +30,10 @@ public class TempleManager
     public static boolean isEnabled         = true;
     protected static boolean checkUpdates;
     protected static boolean dropBlocks;
+    protected static boolean constantWorldNames;
     
     // Configuration
-    protected static Configuration config = null;
+    protected static File config = null;
     
     // A Map of which temples are being editted in which World
     public static Map<String,World> templeEditMap  = new HashMap<String,World>();
@@ -52,7 +45,7 @@ public class TempleManager
     public static String breakableMats;
     public static String goldPerMob;
     
-    final public static String[] mobs = {"Chicken","Cow","Pig","Sheep","Zombie","PigZombie","Skeleton","Creeper","Wolf","Ghast","Monster","Slime","Spider","Squid"};
+    final public static String[] mobs = {"Chicken","Cow","Pig","Sheep","Zombie","PigZombie","Skeleton","Creeper","Wolf","Ghast","Monster","Slime","Spider","Squid","CaveSpider","Enderman"};
     final public static Set<String> modes = new HashSet<String>(Arrays.asList("adventure","zombies","spleef"));
     //future modes: "race","ctf","koth","assult","assassin"
     
@@ -88,8 +81,8 @@ public class TempleManager
             breakableMats          = TCUtils.getString(config, "settings.breakablemats", "31,37,38,39,40,46,82");
             goldPerMob             = TCUtils.getString(config, "settings.goldpermob", "50-100");
             dropBlocks             = TCUtils.getBoolean(config, "settings.dropblocks", false);
+            constantWorldNames    = TCUtils.getBoolean(config, "settings.constantworldnames", false);
             
-        	//worldEdit              = TempleCraft.getWorldEdit();
         	loadMisc();
         	loadTemplePlayers();
 	    	loadCustomTemples();
@@ -233,6 +226,14 @@ public class TempleManager
 	// ///////////////////////////////////////////////////////////////////// */
 	
     private static void loadMisc() {
+    	// Handles Chunk Generator Folder
+    	File cgFolder = new File("plugins/TempleCraft/ChunkGenerators");
+    	if(!cgFolder.exists()){
+    		cgFolder.mkdir();
+    		TCUtils.copyFromJarToDisk("Flat1.jar", cgFolder);
+    	}
+    	
+    	// Handles getting mob gold drop amount from config
     	String[] g = goldPerMob.split("-");
     	try{
 	    	if(g[0] != null){
@@ -245,7 +246,7 @@ public class TempleManager
     		mobGoldRan = 0;
     	}
     	
-		//breakable
+		// Handles what is breakable
     	for(String s : breakableMats.split(",")){
     		s = s.trim();
     		if(!s.isEmpty())

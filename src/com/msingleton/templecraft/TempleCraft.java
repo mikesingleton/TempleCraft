@@ -1,9 +1,9 @@
 package com.msingleton.templecraft;
 
+import java.io.File;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.event.block.BlockListener;
@@ -15,7 +15,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.PluginManager;
 
-import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
 import com.nijikokun.register.payment.Method;
@@ -121,16 +120,7 @@ public class TempleCraft extends JavaPlugin
         log.info("Found and will use plugin "+((Permissions)permissionsPlugin).getDescription().getFullName());
     }
     
-    public static WorldEditPlugin getWorldEdit(){
-    Plugin worldEdit = TempleManager.server.getPluginManager().getPlugin("WorldEdit");
-    if (worldEdit == null) {
-      System.out.println("WorldEdit does not appear to be installed.");
+    public File getPluginFile(){
+    	return getFile();
     }
-
-    if ((worldEdit instanceof WorldEditPlugin)) {
-      return (WorldEditPlugin)worldEdit;
-    }
-    System.out.println("WorldEdit detection failed (report error).");
-	return null;
-  }
 }

@@ -1,14 +1,8 @@
 package com.msingleton.templecraft;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.BlockDamageEvent;
-import org.bukkit.event.block.BlockFadeEvent;
-import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -42,9 +36,6 @@ public class TCBlockListener extends BlockListener
     	Temple temple = tp.currentTemple;
     	
     	if(temple == null)
-    		return;
-    	
-    	if(TCUtils.isTCEditWorld(p.getWorld()))
     		return;
     	
     	boolean cancel = true;
@@ -91,7 +82,7 @@ public class TCBlockListener extends BlockListener
     	if(TCUtils.isTCEditWorld(p.getWorld())){
     		for(int i : Temple.coordBlocks)
     			if(b.getTypeId() == i)
-    				temple.coordBlockSet.add(b);
+    				temple.coordLocSet.add(b.getLocation());
     		return;
     	}
     	

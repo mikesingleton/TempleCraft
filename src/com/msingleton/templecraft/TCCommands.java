@@ -1,17 +1,15 @@
 package com.msingleton.templecraft;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.CommandExecutor;
 
 import com.msingleton.templecraft.games.Game;
-import com.sk89q.worldedit.IncompleteRegionException;
-import com.sk89q.worldedit.Vector;
-import com.sk89q.worldedit.bukkit.selections.Selection;
-import com.sk89q.worldedit.regions.Region;
 
 public class TCCommands implements CommandExecutor
 {
@@ -42,8 +40,14 @@ public class TCCommands implements CommandExecutor
         if (args.length == 1)
         	if(basicCommands(p, args[0].toLowerCase()))
         		return true;
+        	else
+        		try{
+        			TCPermissionHandler.sendResponse(p,Integer.parseInt(args[0]));
+        			return true;
+        		}catch(Exception e){};
         
-        TCPermissionHandler.sendResponse(p);
+        
+        TCPermissionHandler.sendResponse(p,1);
         return true;
     }
 
@@ -101,7 +105,7 @@ public class TCCommands implements CommandExecutor
         if ((cmd.equals("gamelist") || cmd.equals("glist")) && TCPermissionHandler.hasPermission(p, "templecraft.playerlist"))
         {
         	if(TempleManager.gameSet.isEmpty()){
-        		TempleManager.tellPlayer(p,"No games are in available.");
+        		TempleManager.tellPlayer(p,"No games are available.");
         		return true;
         	}
         	p.sendMessage(ChatColor.GREEN+"Game List:");
@@ -114,16 +118,43 @@ public class TCCommands implements CommandExecutor
         if ((cmd.equals("templelist") || cmd.equals("tlist")) && TCPermissionHandler.hasPermission(p, "templecraft.templelist"))
         {
         	if(TempleManager.templeSet.isEmpty()){
-        		TempleManager.tellPlayer(p,"No Temples are in available.");
+        		TempleManager.tellPlayer(p,"No Temples are available.");
         		return true;
         	}
         	p.sendMessage(ChatColor.GREEN+"Temple List:");
-        	for(Temple temple : TempleManager.templeSet)
-        		if(temple != null)
-        			if(temple.isSetup)
-        				p.sendMessage(temple.templeName+": "+ChatColor.DARK_GREEN+"Setup");
-        			else
-        				p.sendMessage(temple.templeName+": "+ChatColor.DARK_RED+"Not Setup");
+        	ArrayList<String> list = new ArrayList<String>();
+        	
+        	Iterator<Temple> it = TempleManager.templeSet.iterator();
+        	while(it.hasNext()){
+        		Temple temple = it.next();
+        		StringBuilder line = new StringBuilder();
+        		if(temple != null){
+        			line.append(ChatColor.WHITE+temple.templeName+": ");
+        			if(temple.isSetup){
+        				line.append(ChatColor.DARK_GREEN+"Setup");
+        			} else {
+        				line.append(ChatColor.DARK_RED+"Not Setup");
+        			}
+        			int startLeng = line.length();
+        			while(line.length()<55-startLeng)
+        				line.append(" ");
+        		}
+        		if(it.hasNext()){
+        			temple = it.next();
+        			if(temple != null){
+            			line.append(ChatColor.WHITE+temple.templeName+": ");
+            			if(temple.isSetup){
+            				line.append(ChatColor.DARK_GREEN+"Setup");
+            			} else {
+            				line.append(ChatColor.DARK_RED+"Not Setup");
+            			}
+            		}
+        		}
+        		list.add(line.toString());
+        	}
+        	
+        	for(String s : list)
+        		p.sendMessage(s);
             return true;
         }
         
@@ -173,8 +204,11 @@ public class TCCommands implements CommandExecutor
     	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
     	
         if (cmd.equals("new") && TCPermissionHandler.hasPermission(p, "templecraft.newtemple"))
-        {        	
-    		TCUtils.newTemple(p, arg, true);
+        {
+        	if(args.length == 2)
+        		TCUtils.newTemple(p, arg, null, true);
+        	else if(args.length == 3)
+        		TCUtils.newTemple(p, arg, args[2].toLowerCase(), true);
     		return true;
         }
         
@@ -200,10 +234,15 @@ public class TCCommands implements CommandExecutor
         
         if (cmd.equals("worldtotemple") && TCPermissionHandler.hasPermission(p, "templecraft.worldtotemple"))
         {
-        	if(!TCUtils.newTemple(p, arg, false)){
+        	if(TCUtils.getTempleByName(arg) != null){
         		TempleManager.tellPlayer(p, "Temple \""+arg+"\" already exists.");
         		return true;
         	}
+        	
+        	if(args.length == 2)
+        		TCUtils.newTemple(p, arg, null, false);
+        	else if(args.length == 3)
+        		TCUtils.newTemple(p, arg, args[2].toLowerCase(), false);
         	
         	Temple temple = TCUtils.getTempleByName(arg);
 			TCRestore.saveTemple(p.getWorld(), temple);
@@ -307,7 +346,7 @@ public class TCCommands implements CommandExecutor
             return true;
         }
         
-        // tc forcestart <templeName>
+        // tc forcestart <game>
         if (cmd.equals("forcestart") && TCPermissionHandler.hasPermission(p, "templecraft.forcestart"))
         {
             game.forceStart(p);

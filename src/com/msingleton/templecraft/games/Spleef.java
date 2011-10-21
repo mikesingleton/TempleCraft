@@ -8,22 +8,15 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
-import org.bukkit.entity.CreatureType;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerListener;
-import org.bukkit.event.player.PlayerMoveEvent;
-
 import com.msingleton.templecraft.MobArenaClasses;
-import com.msingleton.templecraft.TCMobHandler;
 import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.Temple;
 import com.msingleton.templecraft.TempleManager;
-import com.msingleton.templecraft.TemplePlayer;
 
 public class Spleef extends Game{	
 	public Map<Location,Integer> checkpointMap = new HashMap<Location,Integer>();
@@ -58,8 +51,8 @@ public class Spleef extends Game{
 	public void startRound(){
 		roundNum++;
 		restorePlayingField();
-		for(Block b : lobbyBlockSet)
-			b.setTypeId(0);
+		for(Location loc : lobbyLocSet)
+			loc.getBlock().setTypeId(0);
 		aliveSet.addAll(playerSet);
 		tellAll("Round "+roundNum);
 	}
@@ -78,19 +71,19 @@ public class Spleef extends Game{
 			};
 			gameTimer.schedule(task, 2000);
 		} else {
-			for(Block b : lobbyBlockSet)
-				b.setTypeId(42);
+			for(Location loc : lobbyLocSet)
+				loc.getBlock().setTypeId(42);
 		}
 	}
 	
 	public Location getPlayerSpawnLoc() {
 		Random r = new Random();
 		Location loc = null;
-		for(Block b : startBlockSet){
+		for(Location l : startLocSet){
 			if(loc == null)
-				loc = b.getLocation();
-			else if(r.nextInt(startBlockSet.size()) == 0)
-				loc = b.getLocation();
+				loc = l;
+			else if(r.nextInt(startLocSet.size()) == 0)
+				loc = l;
 		}
 		return loc;
 	}
@@ -151,7 +144,7 @@ public class Spleef extends Game{
 					int z = b.getZ()+k;
 					Location loc = new Location(world,x, y, z);
 					if(TCUtils.distance(b.getLocation(), loc) <= radius)
-						startBlockSet.add(world.getBlockAt(loc));
+						startLocSet.add(loc);
 				}
 			}
 			

@@ -16,6 +16,7 @@ import org.bukkit.plugin.Plugin;
  * @copyright (c) 2011
  * @license AOL license <http://aol.nexua.org>
  */
+@SuppressWarnings("static-access")
 public class iCo6 implements Method {
     private iConomy iConomy;
 

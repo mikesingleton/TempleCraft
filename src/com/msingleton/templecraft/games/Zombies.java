@@ -1,7 +1,5 @@
 package com.msingleton.templecraft.games;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -11,14 +9,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.CreatureType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
@@ -26,9 +20,7 @@ import com.msingleton.templecraft.MobArenaClasses;
 import com.msingleton.templecraft.TCMobHandler;
 import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.Temple;
-import com.msingleton.templecraft.TempleCraft;
 import com.msingleton.templecraft.TempleManager;
-import com.nijikokun.register.payment.Method.MethodAccount;
 
 public class Zombies extends Game{
 	//private static Set<Integer> transBlockSet = new HashSet<Integer>(Arrays.asList(0,8,9,10,27,28,30,31,34,37,38,39,40,50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,78,83,90,93,94,96,321));
@@ -71,11 +63,11 @@ public class Zombies extends Game{
 	public Location getPlayerSpawnLoc() {
 		Random r = new Random();
 		Location loc = null;
-		for(Block b : startBlockSet){
+		for(Location l : startLocSet){
 			if(loc == null)
-				loc = b.getLocation();
-			else if(r.nextInt(startBlockSet.size()) == 0)
-				loc = b.getLocation();
+				loc = l;
+			else if(r.nextInt(startLocSet.size()) == 0)
+				loc = l;
 		}
 		return loc;
 	}

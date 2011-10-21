@@ -1,16 +1,11 @@
 package com.msingleton.templecraft;
 
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
 
+import java.util.Random;
 import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.CreatureType;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.plugin.Plugin;
 
 import com.msingleton.templecraft.games.Game;
 
@@ -39,21 +34,23 @@ public class TCMobHandler {
 	}
 	
 	public static CreatureType getRandomCreature() {
-		int dZombies, dSkeletons, dSpiders, dCreepers, dWolves;
+		int dZombies, dSkeletons, dSpiders, dCreepers, dWolves, dCaveSpiders;
 		dZombies = 5;
 		dSkeletons = dZombies + 5;
 		dSpiders = dSkeletons + 5;
 		dCreepers = dSpiders + 5;
 		dWolves = dCreepers + 5;
+		dCaveSpiders = dWolves + 5;
 		
 		CreatureType mob;
 		
-		int ran = new Random().nextInt(dWolves);
-		if      (ran < dZombies)   mob = CreatureType.ZOMBIE;
-	    else if (ran < dSkeletons) mob = CreatureType.SKELETON;
-	    else if (ran < dSpiders)   mob = CreatureType.SPIDER;
-	    else if (ran < dCreepers)  mob = CreatureType.CREEPER;
-	    else if (ran < dWolves)    mob = CreatureType.WOLF;
+		int ran = new Random().nextInt(dCaveSpiders);
+		if      (ran < dZombies)     mob = CreatureType.ZOMBIE;
+	    else if (ran < dSkeletons)   mob = CreatureType.SKELETON;
+	    else if (ran < dSpiders)     mob = CreatureType.SPIDER;
+	    else if (ran < dCreepers)    mob = CreatureType.CREEPER;
+	    else if (ran < dWolves)      mob = CreatureType.WOLF;
+	    else if (ran < dCaveSpiders) mob = CreatureType.CAVE_SPIDER;
 	    else return null;
 		
 		return mob;

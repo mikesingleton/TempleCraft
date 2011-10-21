@@ -12,7 +12,8 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 // TO-DO: Fix the bug that causes the message when people get stuck in walls.
 public class TCTeleportListener extends PlayerListener
 {
-    private TempleCraft plugin;
+    @SuppressWarnings("unused")
+	private TempleCraft plugin;
     
     public TCTeleportListener(TempleCraft instance)
     {

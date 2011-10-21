@@ -3,39 +3,34 @@ package com.msingleton.templecraft;
 import java.net.URI;
 import java.net.HttpURLConnection;
 import java.io.File;
-import java.util.ArrayList;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Set;
+import java.util.jar.JarFile;
 
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.Location;
-import org.bukkit.World.Environment;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.util.config.Configuration;
-
-
 import com.msingleton.templecraft.games.Adventure;
 import com.msingleton.templecraft.games.Game;
 import com.msingleton.templecraft.games.Spleef;
 import com.msingleton.templecraft.games.Zombies;
-import com.sk89q.minecraft.util.commands.CommandException;
-import com.sk89q.worldedit.bukkit.WorldEditPlugin;
-import com.sk89q.worldedit.bukkit.selections.Polygonal2DSelection;
 import com.sk89q.worldedit.bukkit.selections.Selection;
-import com.sk89q.worldedit.regions.Region;
 
 public class TCUtils
 {                   
@@ -70,23 +65,6 @@ public class TCUtils
         return inv;
     }
     
-    /* Checks if all inventory and armor slots are empty. */
-    public static boolean hasEmptyInventory(Player player)
-    {
-		ItemStack[] inventory = player.getInventory().getContents();
-		ItemStack[] armor     = player.getInventory().getArmorContents();
-        
-        // For inventory, check for null
-        for (ItemStack stack : inventory)
-            if (stack != null) return false;
-        
-        // For armor, check for id 0, or AIR
-        for (ItemStack stack : armor)
-            if (stack.getTypeId() != 0) return false;
-        
-        return true;
-	}
-    
     public static boolean hasPlayerInventory(String playerName) {
 		return inventories.containsKey(playerName);
 	}
@@ -94,11 +72,6 @@ public class TCUtils
 	public static void keepPlayerInventory(Player player) {
 		PlayerInventory inventory = player.getInventory();
 		ItemStack[] contents = inventory.getContents();
-		/*inventory.clear();
-		inventory.clear(inventory.getSize() + 0);
-		inventory.clear(inventory.getSize() + 1);
-		inventory.clear(inventory.getSize() + 2);
-		inventory.clear(inventory.getSize() + 3);*/
 		inventories.put(player.getName(), new InventoryStash(contents, inventory.getHelmet(), inventory.getChestplate(), 
 																inventory.getLeggings(), inventory.getBoots(), player.getHealth(), player.getFoodLevel(), player.getExperience(), player.getGameMode()));	
 	}
@@ -115,8 +88,7 @@ public class TCUtils
 		player.setGameMode(originalContents.getGameMode());
 	}
     
-	private static void playerInvFromInventoryStash(PlayerInventory playerInv,
-			InventoryStash originalContents) {
+	private static void playerInvFromInventoryStash(PlayerInventory playerInv, InventoryStash originalContents) {
 		playerInv.clear();
 		playerInv.clear(playerInv.getSize() + 0);
 		playerInv.clear(playerInv.getSize() + 1);
@@ -150,7 +122,7 @@ public class TCUtils
     /**
      * Creates a Configuration object from the config.yml file.
      */
-    public static Configuration getConfig(String name)
+    public static File getConfig(String name)
     {
         new File("plugins/TempleCraft").mkdir();
         File configFile = new File("plugins/TempleCraft/"+name+".yml");
@@ -168,17 +140,20 @@ public class TCUtils
             return null;
         }
         
-        return new Configuration(configFile);
+        return configFile;
     }
     
     public static List<String> getEnabledCommands()
     {
-        Configuration c = TempleManager.config;
-        c.load();
+        YamlConfiguration c = YamlConfiguration.loadConfiguration(TempleManager.config);
         
         String commands = c.getString("settings.enabledcommands", "/tc");
-        c.setProperty("settings.enabledcommands", commands);
-        c.save();
+        c.set("settings.enabledcommands", commands);
+        try {
+			c.save(TempleManager.config);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
         
         List<String> result = new LinkedList<String>();
         for (String s : commands.split(","))
@@ -189,6 +164,7 @@ public class TCUtils
     
     public static String getNextAvailableTempWorldName(String type) {
     	String name;
+    	
     	if(type.equals("Edit")){
     		int size = TempleManager.templeEditMap.size();
     		if(size >= TempleManager.maxEditWorlds)
@@ -213,53 +189,66 @@ public class TCUtils
      */
     public static int getInt(String path, int def)
     {
-        Configuration c = TempleManager.config;
-        c.load();
-        
+    	YamlConfiguration c = YamlConfiguration.loadConfiguration(TempleManager.config);
+    	
         int result = c.getInt(path, def);
-        c.setProperty(path, result);
+        c.set(path, result);
         
-        c.save();
+		try {
+			c.save(TempleManager.config);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
         return result;
     }
     
     /**
      * Grabs a string from the config-file.
      */
-	public static String getString(Configuration config, String path, String def) {
-		Configuration c = config;
-        c.load();
+	public static String getString(File configFile, String path, String def) {
+		YamlConfiguration c = YamlConfiguration.loadConfiguration(configFile);
         
         String result = c.getString(path, def);
-        c.setProperty(path, result);
+        c.set(path, result);
         
-        c.save();
+        try {
+			c.save(configFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
         return result;
 	}
     
     /**
      * Grabs a boolean from the config-file.
      */
-    public static boolean getBoolean(Configuration config, String path, boolean def)
+    public static boolean getBoolean(File configFile, String path, boolean def)
     {
-        Configuration c = config;
-        c.load();
+    	YamlConfiguration c = YamlConfiguration.loadConfiguration(configFile);
         
         boolean result = c.getBoolean(path, def);
-        c.setProperty(path, result);
+        c.set(path, result);
         
-        c.save();
+		try {
+			c.save(configFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		//System.out.println(result + "\t" + path);
         return result;
     }
     
-    public static void setBoolean(Configuration config, String path, boolean key)
+    public static void setBoolean(File configFile, String path, boolean key)
     {
-        Configuration c = config;
-        c.load();
+    	YamlConfiguration c = YamlConfiguration.loadConfiguration(configFile);
         
-        c.setProperty(path, key);
+        c.set(path, key);
         
-        c.save();
+        try {
+			c.save(configFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
     }
     
     /**
@@ -271,17 +260,22 @@ public class TCUtils
     }
     
     private static void cleanTempleConfig() {
-		Configuration c = getConfig("temples");
-		c.load();
-		if(c.getKeys("Temples") == null)
+    	YamlConfiguration c = YamlConfiguration.loadConfiguration(getConfig("temples"));
+
+		if(!c.getKeys(false).contains("Temples"))
 			return;
 		
-		for(String s :c.getKeys("Temples")){
+		Set<String> list = c.getConfigurationSection("Temples").getKeys(false);
+		for(String s : list){
 			Temple temple = getTempleByName(s);
 			if(temple == null)
-				c.removeProperty("Temples."+s);
+				c.set("Temples."+s,"");
 		}
-		c.save();
+		try {
+			c.save(getConfig("temples"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/* ///////////////////////////////////////////////////////////////////// //
@@ -331,7 +325,7 @@ public class TCUtils
 		return null;
 	}
     
-    public static boolean newTemple(Player p, String templeName, boolean edit) {		
+    public static boolean newTemple(Player p, String templeName, String ChunkGen, boolean edit) {		
 		Temple temple = TCUtils.getTempleByName(templeName);
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		
@@ -360,16 +354,36 @@ public class TCUtils
     	temple = new Temple(templeName);
     	tp.ownedTemples++;
     	temple.addOwner(p.getName());
+    	
+    	if(ChunkGen != null)
+	    	temple.ChunkGeneratorFile = getChunkGeneratorByName(ChunkGen);
 		
 		if(!edit)
 			return true;
-		
-    	editTemple(p, temple);
+
+		editTemple(p, temple);
     	
     	return true;
 	}
+    
+    private static File getChunkGeneratorByName(String ChunkGen) {
+    	File cgFolder = new File("plugins/TempleCraft/ChunkGenerators");
+    	File temp = null;
+    	ChunkGen = ChunkGen.toLowerCase();
+    	if(cgFolder.isDirectory()){
+			for(File f : cgFolder.listFiles()){
+				String name = f.getName().toLowerCase();
+	    		if(name.replace(".jar", "").equals(ChunkGen.replace(".jar", ""))){
+		    		return f;
+	    		} else if(name.startsWith(ChunkGen)){
+	    			temp = f;
+	    		}
+	    	}
+    	}
+		return temp;
+    }
 
-	public static void editTemple(Player p, Temple temple) {		
+	public static void editTemple(Player p, Temple temple) {	
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		
 		if(!temple.accessorSet.contains(p.getName()) && !temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
@@ -382,11 +396,19 @@ public class TCUtils
 			return;
 		}
 		
+		World EditWorld;
+		if(TempleManager.templeEditMap.containsKey(temple.templeName))
+			EditWorld = TempleManager.templeEditMap.get(temple.templeName);
+		else
+			EditWorld = temple.loadTemple("Edit");
 		
-		World EditWorld = temple.loadTemple("Edit");
-		
-		if(EditWorld == null)
+		if(EditWorld == null){
+			if(TempleManager.constantWorldNames)
+				TempleManager.tellPlayer(p, "Temple is already in use.");
+			else
+				TempleManager.tellPlayer(p, "Unable to edit temple at this time.");
 			return;
+		}
 		
 		// Only clears and loads Temple if no one is already editing
 		if(temple.editorSet.isEmpty()){
@@ -400,7 +422,11 @@ public class TCUtils
 			TCUtils.keepPlayerInventory(p);
 		if(!TempleManager.locationMap.containsKey(p))
 			TempleManager.locationMap.put(p, p.getLocation());
-		teleportToWorld(EditWorld, temple, p);
+		Location lobbyLoc = temple.getLobbyLoc(EditWorld);
+		if(lobbyLoc != null)
+			p.teleport(lobbyLoc);
+		else
+			p.teleport(new Location(EditWorld,-1, EditWorld.getHighestBlockYAt(-1, -1)+2, -1));
 		p.setGameMode(GameMode.CREATIVE);
 	}
 	
@@ -408,24 +434,20 @@ public class TCUtils
 		File tcffile = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName+TempleCraft.fileExtention);
 		File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName);
 			
-		String worldName = getNextAvailableTempWorldName("Edit");
+		if(!tcffile.exists() && !file.exists())
+			return;
 		
-		World ConvertWorld = null;
-		if(file.exists()){
-			TCRestore.loadTemple(worldName, temple);
-			ConvertWorld = TempleManager.server.createWorld(worldName, Environment.NORMAL);
-		} else if(tcffile.exists()){
-			ConvertWorld = TempleManager.server.createWorld(worldName, Environment.NORMAL, new TempleWorldGenerator());
-			TCRestore.loadTemple(new Location(ConvertWorld,0,0,0), temple);
-		}
+		World ConvertWorld = temple.loadTemple("Convert");
 		
 		if(ConvertWorld == null)
 			return;
 		
 		ConvertWorld.setAutoSave(false);
 		ConvertWorld.setKeepSpawnInMemory(false);
+		ConvertWorld.setTime(8000);
+		ConvertWorld.setStorm(false);
+		ConvertWorld.setSpawnLocation(-1, ConvertWorld.getHighestBlockYAt(-1, -1)+2, -1);
 		
-		temple.coordBlockSet.addAll(TCRestore.getSignificantBlocks(temple, ConvertWorld));
 		temple.saveTemple(ConvertWorld, p);
 		deleteTempWorld(ConvertWorld);
 	}
@@ -443,15 +465,17 @@ public class TCUtils
 		TempleManager.templeSet.remove(temple);
 	}
 	
-	public static void deleteTempWorld(World w){
-		if(w == null)
-			return;
+	public static boolean deleteTempWorld(World w){
+		if(w == null || !w.getPlayers().isEmpty())
+			return false;
+		w.setAutoSave(false);
 		File folder = new File(w.getName());
 		for(Entity e : w.getEntities())
 			e.remove();
 		TempleManager.server.unloadWorld(w, true);
 		if(folder.exists())
 			deleteFolder(folder);
+		return true;
 	}
 	
 	public static void deleteTempWorlds(){
@@ -460,7 +484,7 @@ public class TCUtils
 				deleteTempWorld(w);
 	}
 	
-	private static void deleteFolder(File folder) {
+	private static void deleteFolder(File folder){
 		try{
 			for(File f : folder.listFiles()){
 				if(f.isDirectory())
@@ -514,13 +538,12 @@ public class TCUtils
 			return;
 		}
 		
-		// Checks to make sure the world that will be created does not already exist
-		World world = TempleManager.server.getWorld(gameName);
-		if(world != null)
-			deleteTempWorld(world);
-		
-		newGame(gameName,temple,mode);
-		TempleManager.tellPlayer(p, "New game \""+gameName+"\" created");
+		if(newGame(gameName,temple,mode) != null)
+			TempleManager.tellPlayer(p, "New game \""+gameName+"\" created");
+		else if(TempleManager.constantWorldNames)
+			TempleManager.tellPlayer(p, "Temple is already in use.");
+		else
+			TempleManager.tellPlayer(p, "Unable to create new game at this time.");
 	}
 
 	public static Game newGame(String name, Temple temple, String mode){
@@ -530,6 +553,11 @@ public class TCUtils
 		Game game;
 		
 		World world = temple.loadTemple("Temple");
+		
+		// Checks to make sure the world is not null
+		if(world == null)
+			return null;
+		
 		if(mode.equals("adventure")){
 			game = new Adventure(name, temple, world);
 		} else if(mode.equals("zombies")){
@@ -649,7 +677,7 @@ public class TCUtils
             double thisVersion = Double.parseDouble(TempleManager.plugin.getDescription().getVersion());
             
             // If the current version is the same as the thread version.
-            if (urlVersion == thisVersion)
+            if (thisVersion >= urlVersion)
             {
                 if (!response)
                     return;
@@ -700,6 +728,23 @@ public class TCUtils
 			game.tellPlayer(p, msg);
 		}
     }
+    
+    public static void copyFromJarToDisk(String entry, File folder){
+    	try{
+			JarFile jar = new JarFile(TempleManager.plugin.getPluginFile());
+			InputStream is = jar.getInputStream(jar.getJarEntry(entry));
+			OutputStream os = new FileOutputStream(new File(folder, entry));
+			byte[] buffer = new byte[4096];
+			int length;
+			while (is!=null&&(length = is.read(buffer)) > 0) {
+			    os.write(buffer, 0, length);
+			}
+			os.close();
+			is.close();
+    	}catch(IOException e){
+    		e.printStackTrace();
+    	}
+	}
 	
 	public static Selection getSelection(Player player){
 		Selection sel = TempleManager.worldEdit.getSelection(player);
@@ -709,21 +754,16 @@ public class TCUtils
 	    
 		return sel;
 	}
-	
-	public static void teleportToWorld(World world, Temple temple, Player p){
-		int ground = world.getHighestBlockYAt(-1, -1);
-		p.teleport(new Location(world, -1, ground, -1));
-	}
 
 	public static boolean isTCWorld(World world) {
 		String name = world.getName();
-		if(name.startsWith("TCEditWorld_") || name.startsWith("TCTempleWorld_"))
+		if(name.startsWith("TCTempleWorld_") || name.startsWith("TCEditWorld_") || name.startsWith("TCConvertWorld_"))
 			return true;
 		return false;
 	}
 	
 	public static boolean isTCEditWorld(World world) {
-		if(world.getName().startsWith("TCEditWorld_"))
+		if(world.getName().startsWith("TCEditWorld_") || TempleManager.templeEditMap.containsValue(world))
 			return true;
 		return false;
 	}

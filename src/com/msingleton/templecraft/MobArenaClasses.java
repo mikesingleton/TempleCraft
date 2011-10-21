@@ -1,35 +1,38 @@
 package com.msingleton.templecraft;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.util.config.Configuration;
 
 import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.TemplePlayer;
-import com.msingleton.templecraft.Temple;
 import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.games.Game;
 
 public class MobArenaClasses extends PlayerListener{
 
-	protected static Configuration config             = null;
-	public static boolean enabled                  = false;
-	protected static List<String> classes             = new LinkedList<String>();;
-	public static Map<Player,String> classMap      = new HashMap<Player,String>();
+	protected static File configFile                  = null;
+	public static boolean enabled                     = false;
+	protected static Set<String> classes              = new HashSet<String>();;
+	public static Map<Player,String> classMap         = new HashMap<Player,String>();
 	protected static Map<String,String> classItemMap  = new HashMap<String,String>();
 	protected static Map<String,String> classArmorMap = new HashMap<String,String>();
 	public static final List<Material> SWORDS_TYPE    = new LinkedList<Material>();
@@ -44,10 +47,10 @@ public class MobArenaClasses extends PlayerListener{
 	public MobArenaClasses(TempleCraft templeCraft) {
 		enabled = TCUtils.getBoolean(TempleManager.config, "settings.enableclasses", false);
 		if(enabled){
-			config  = TCUtils.getConfig("classes");
-			classes = getClasses();
-			classItemMap = getClassItems(config, "classes.","items");
-			classArmorMap = getClassItems(config, "classes.","armor");
+			configFile    = TCUtils.getConfig("classes");
+			classes       = getClasses();
+			classItemMap  = getClassItems(configFile, "classes.","items");
+			classArmorMap = getClassItems(configFile, "classes.","armor");
 		}
 	}
 
@@ -123,9 +126,9 @@ public class MobArenaClasses extends PlayerListener{
      * type of items ("items" or "armor") and the config-file.
      * Will explode if the classes aren't well-defined.
      */
-    public static Map<String,String> getClassItems(Configuration c, String path, String type)
+    public static Map<String,String> getClassItems(File configFile, String path, String type)
     {
-        c.load();
+        YamlConfiguration c = YamlConfiguration.loadConfiguration(configFile);
         
         Map<String,String> result = new HashMap<String,String>();
         
@@ -279,12 +282,11 @@ public class MobArenaClasses extends PlayerListener{
      * Grabs the list of classes from the config-file. If no list is
      * found, generate a set of default classes.
      */
-    public static List<String> getClasses()
+    public static Set<String> getClasses()
     {
-        Configuration c = config;
-        c.load();
+    	YamlConfiguration c = YamlConfiguration.loadConfiguration(configFile);
         
-        if (c.getKeys("classes") == null)
+        if (c.getKeys(false) == null)
         {
         	/* Swords
         	 * Wood:   268
@@ -301,19 +303,22 @@ public class MobArenaClasses extends PlayerListener{
         	 * Gold:      314,315,316,317
         	 * Diamond:   310,311,312,313
         	 */
-        	c.setProperty("classes.Archer.items", "wood_sword, bow, arrow:128, grilled_pork");
-            c.setProperty("classes.Archer.armor", "298,299,300,301");
-            c.setProperty("classes.Knight.items", "diamond_sword, grilled_pork");
-            c.setProperty("classes.Knight.armor", "306,307,308,309");
-            c.setProperty("classes.Tank.items",   "iron_sword, grilled_pork:2");
-            c.setProperty("classes.Tank.armor",   "310,311,312,313");
-            c.setProperty("classes.Chef.items",   "stone_sword, bread:6, grilled_pork:4, mushroom_soup, cake:3, cookie:12");
-            c.setProperty("classes.Chef.armor",   "314,315,316,317");
+        	c.set("classes.Archer.items", "wood_sword, bow, arrow:128, grilled_pork");
+            c.set("classes.Archer.armor", "298,299,300,301");
+            c.set("classes.Knight.items", "diamond_sword, grilled_pork");
+            c.set("classes.Knight.armor", "306,307,308,309");
+            c.set("classes.Tank.items",   "iron_sword, grilled_pork:2");
+            c.set("classes.Tank.armor",   "310,311,312,313");
+            c.set("classes.Chef.items",   "stone_sword, bread:6, grilled_pork:4, mushroom_soup, cake:3, cookie:12");
+            c.set("classes.Chef.armor",   "314,315,316,317");
             
-            c.save();
+            try {
+				c.save(configFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
         }
-        
-        return c.getKeys("classes");
+        return c.getConfigurationSection("classes").getKeys(false);
     }
     
     public static void generateClassSigns(Sign sign) {

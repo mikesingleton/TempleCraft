@@ -1,7 +1,7 @@
 name: TempleCraft
 author: Mike Singleton
 main: com.msingleton.templecraft.TempleCraft
-version: 0.33
+version: 0.4
 commands:
   tc:
     description: Base command for TempleCraft
@@ -11,6 +11,7 @@ permissions:
     templecraft.*:
         description: Gives access to all TempleCraft commands
         children:
+            templecraft.tc: true
             templecraft.newgame: true
             templecraft.join: true            templecraft.leave: true            templecraft.ready: true            templecraft.templelist: true            templecraft.playerlist: true            templecraft.forcestart: true            templecraft.forceend: true
             templecraft.enable: true
@@ -34,6 +35,9 @@ permissions:
             templecraft.removeplayer: true
 
 # General Play Commands
+    templecraft.tc:
+        description: Default Command for TempleCraft.
+        default: true
     templecraft.newgame:
         description: Create a new game.
         default: op
