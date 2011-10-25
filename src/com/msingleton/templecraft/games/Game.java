@@ -470,6 +470,8 @@ public class Game{
 		tp.roundDeaths++;
 		
 		p.setHealth(20);
+		p.setFoodLevel(20);
+		p.setExperience(0);
 		p.setFireTicks(0);
 	}
 	

@@ -45,7 +45,7 @@ public class MobArenaClasses extends PlayerListener{
         SWORDS_TYPE.add(Material.DIAMOND_SWORD);
     }
 	public MobArenaClasses(TempleCraft templeCraft) {
-		enabled = TCUtils.getBoolean(TempleManager.config, "settings.enableclasses", false);
+		enabled = TCUtils.getBoolean(TempleManager.config, "settings.enableclasses", true);
 		if(enabled){
 			configFile    = TCUtils.getConfig("classes");
 			classes       = getClasses();
@@ -285,8 +285,8 @@ public class MobArenaClasses extends PlayerListener{
     public static Set<String> getClasses()
     {
     	YamlConfiguration c = YamlConfiguration.loadConfiguration(configFile);
-        
-        if (c.getKeys(false) == null)
+    	
+        if (c.getKeys(false).isEmpty())
         {
         	/* Swords
         	 * Wood:   268

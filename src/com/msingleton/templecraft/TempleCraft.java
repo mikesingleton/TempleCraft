@@ -50,6 +50,11 @@ public class TempleCraft extends JavaPlugin
         setupPermissions();
         // Initialize convenience variables in ArenaManager.
         TempleManager.init(this);
+        // Export Register
+        File register = new File("plugins/Register.jar");
+        if(!register.exists())
+        	TCUtils.copyFromJarToDisk("Register.jar", new File("plugins/"));
+        
         ENABLED_COMMANDS = TCUtils.getEnabledCommands();
         
         // Bind the /tc and /tcraft commands to MACommands.
@@ -85,7 +90,7 @@ public class TempleCraft extends JavaPlugin
         pm.registerEvent(Event.Type.BLOCK_PLACE,      blockListener,    Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_DAMAGE,    damageListener,   Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_DEATH,     damageListener,   Priority.Normal,  this);
-        pm.registerEvent(Event.Type.CREATURE_SPAWN,   damageListener,   Priority.Normal,  this);
+        pm.registerEvent(Event.Type.CREATURE_SPAWN,   monsterListener,   Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_EXPLODE,   monsterListener,  Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_COMBUST,   monsterListener,  Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_TARGET,    monsterListener,  Priority.Normal,  this);

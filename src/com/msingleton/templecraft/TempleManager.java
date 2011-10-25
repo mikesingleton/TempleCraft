@@ -200,10 +200,10 @@ public class TempleManager
 		}
 		locationMap.remove(p);
 		
-		if(temple.editorSet.remove(p))
-			if(templeEditMap.containsKey(temple.templeName))
+		if(temple.editorSet.remove(p)){
+			if(templeEditMap.containsKey(temple.templeName) && !TempleManager.constantWorldNames)
 				TCUtils.deleteTempWorld(templeEditMap.remove(temple.templeName));
-		else
+		} else
 			tp.displayStats();
 		
 		if(game != null){

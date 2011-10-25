@@ -21,9 +21,12 @@ import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.CaveSpider;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.PigZombie;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Slime;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import com.msingleton.templecraft.games.Adventure;
@@ -699,20 +702,9 @@ public class TCUtils
     	Game game = TCUtils.getGame(entity);
     	
     	String msg = "";
-    	String killed = "";
-    	String killer = ""; 	
-    	if(entity2 instanceof Player)
-    		killer = ((Player)entity2).getDisplayName();
-    		
-    	if(entity2 instanceof Creature)
-    		killer = ((Creature)entity2).getClass().getSimpleName().replace("Craft", "");
-    	
-    	if(entity instanceof Player)
-    		killed = ((Player)entity).getDisplayName();
-    	
-    	if(entity instanceof Creature)
-    		killed = ((Creature)entity).getClass().getSimpleName().replace("Craft", "");
-    	
+    	String killed = getDisplayName(entity);
+    	String killer = getDisplayName(entity2); 	
+
     	if(killer.equals("")){
     		String s = entity.getLastDamageCause().getCause().name().toLowerCase();
     		killer = s.substring(0,1).toUpperCase().concat(s.substring(1, s.length()));
@@ -722,14 +714,31 @@ public class TCUtils
 			//String key = p.getName() + "." + entity.getEntityId();
 			msg = killer + ChatColor.RED + " killed " + ChatColor.WHITE + killed;
     		
+			String s = TempleCraft.method.format(2.0);
+			String currencyName = s.substring(s.indexOf(" ") + 1);
+			
 			if(game.mobGoldMap.containsKey(entity.getEntityId()) && entity2 instanceof Player)
-				msg += ChatColor.GOLD + " (+" + game.mobGoldMap.get(entity.getEntityId())/game.playerSet.size() + " Gold)";
+				msg += ChatColor.GOLD + " (+" + game.mobGoldMap.get(entity.getEntityId())/game.playerSet.size() + " "+currencyName+")";
         	
 			game.tellPlayer(p, msg);
 		}
     }
     
-    public static void copyFromJarToDisk(String entry, File folder){
+    private static String getDisplayName(Entity entity) {
+    	if(entity instanceof Player)
+    		return ((Player)entity).getDisplayName();
+    	if(entity instanceof CaveSpider)
+    		return "Cave Spider";
+    	if(entity instanceof PigZombie)
+    		return "Pig Zombie";
+    	if(entity instanceof Creature)
+    		return ((Creature)entity).getClass().getSimpleName().replace("Craft", "");
+    	if(entity instanceof Slime)
+    		return "Slime";
+		return "";
+	}
+
+	public static void copyFromJarToDisk(String entry, File folder){
     	try{
 			JarFile jar = new JarFile(TempleManager.plugin.getPluginFile());
 			InputStream is = jar.getInputStream(jar.getJarEntry(entry));

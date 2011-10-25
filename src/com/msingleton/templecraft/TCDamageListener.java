@@ -1,6 +1,5 @@
 package com.msingleton.templecraft;
 
-import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -9,7 +8,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.CreatureSpawnEvent;
 import com.msingleton.templecraft.games.Adventure;
 import com.msingleton.templecraft.games.Game;
 import com.msingleton.templecraft.games.Zombies;
@@ -150,38 +148,5 @@ public class TCDamageListener extends EntityListener
             	if(game.monsterSet.isEmpty())
             		((Zombies)game).nextRound();
         }
-    }
-    
-    /**
-     * Prevents monsters from spawning inside the arena unless
-     * it's running.
-     */
-    public void onCreatureSpawn(CreatureSpawnEvent event)
-    {    	
-    	if (!(event.getEntity() instanceof LivingEntity))
-            return;
-    	
-    	Location loc = event.getLocation();
-    	
-    	if(TCUtils.isTCEditWorld(loc.getWorld())){
-    		event.setCancelled(true);
-    		return;
-    	}
-    	
-    	LivingEntity e = (LivingEntity) event.getEntity();
-    	if(TCUtils.isTCWorld(loc.getWorld())){
-    		boolean result = true;
-	    	for(Game game : TempleManager.gameSet)
-	    		if(game.isRunning)
-					for(Location sploc : game.mobSpawnpointSet)
-						if(TCUtils.distance(loc, sploc) < 2){
-    						result = false;
-    						game.monsterSet.add(e);
-    						game.mobSpawnpointMap.remove(sploc);
-    						if(game instanceof Zombies)
-    			    			e.setHealth((int) ((Zombies)game).getZombieHealth());
-						}
-	    	event.setCancelled(result);
-    	}
     }
 }

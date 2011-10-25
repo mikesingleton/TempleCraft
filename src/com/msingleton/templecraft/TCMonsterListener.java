@@ -1,12 +1,16 @@
 package com.msingleton.templecraft;
 
 import java.util.HashMap;
+
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
@@ -14,7 +18,8 @@ import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTargetEvent.TargetReason;
 
 import com.msingleton.templecraft.games.Game;
-import com.msingleton.templecraft.games.Adventure;;
+import com.msingleton.templecraft.games.Adventure;
+import com.msingleton.templecraft.games.Zombies;
 
 
 /**
@@ -150,5 +155,35 @@ public class TCMonsterListener extends EntityListener
             
         if (event.getReason() == TargetReason.CLOSEST_PLAYER)
             event.setTarget(TCUtils.getClosestPlayer(game, event.getEntity()));
+    }
+    
+    /**
+     * Prevents monsters from spawning inside a temple unless
+     * it's running.
+     */
+    public void onCreatureSpawn(CreatureSpawnEvent event)
+    {    	
+    	if (!(event.getEntity() instanceof LivingEntity))
+            return;
+    	
+    	Location loc = event.getLocation();
+    	
+    	if(TCUtils.isTCEditWorld(loc.getWorld())){
+    		event.setCancelled(true);
+    		return;
+    	}
+    	
+    	// When in TCWorld, Only Spawn Custom Monsters
+    	LivingEntity e = (LivingEntity) event.getEntity();
+    	if(TCUtils.isTCWorld(loc.getWorld())){
+    		if(event.getSpawnReason().equals(SpawnReason.CUSTOM)){
+	    		Game game = TCUtils.getGameByWorld(loc.getWorld());
+		    	game.monsterSet.add(e);
+	    		if(game instanceof Zombies)
+	    			e.setHealth((int) ((Zombies)game).getZombieHealth());
+    		} else {
+    			event.setCancelled(true);
+    		}
+    	}
     }
 }

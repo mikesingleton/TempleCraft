@@ -47,10 +47,12 @@ public class Adventure extends Game{
 	{
 		String msg;
 		if(TempleCraft.method != null){
+			String s = TempleCraft.method.format(2.0);
+			String currencyName = s.substring(s.indexOf(" ") + 1);
 			MethodAccount balance = TempleCraft.method.getAccount(p.getName());
 			if(balance.hasEnough(rejoinCost)){
 				if(TempleCraft.method != null && rejoinCost > 0){
-					msg = "To continue playing will cost you "+ChatColor.GOLD+rejoinCost+" gold.";
+					msg = "To continue playing will cost you "+ChatColor.GOLD+rejoinCost+" "+currencyName+".";
 					TempleManager.tellPlayer(p, msg);
 					msg = "Or type \"/tc leave\" and restart from the beginning!";
 					TempleManager.tellPlayer(p, msg);
@@ -59,7 +61,7 @@ public class Adventure extends Game{
 					//TempleManager.tellPlayer(p, msg);
 				}
 			} else {
-				msg = "You do not have enough gold to rejoin.";
+				msg = "You do not have enough "+currencyName+" to rejoin.";
 				TempleManager.tellPlayer(p, msg);
 				msg = "Please type \"/tc leave\" to leave the temple.";
 				TempleManager.tellPlayer(p, msg);

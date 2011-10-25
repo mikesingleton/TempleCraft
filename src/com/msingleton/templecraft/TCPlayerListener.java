@@ -152,17 +152,48 @@ public class TCPlayerListener  extends PlayerListener{
 
 	public void onPlayerMove(PlayerMoveEvent event){
 		Player p = event.getPlayer();
+		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+		Temple temple = tp.currentTemple;
+		
+		// For Entering Temple
+		if(temple == null){
+			if(event.getTo().distance(event.getFrom())>0.05){
+				Set<Sign> signs = new HashSet<Sign>();
+				Block b = p.getLocation().getBlock();
+				for(int i = -3; i<=3;i++)
+					for(int j = -3; j<0;j++)
+						for(int k = -3; k<=3;k++){
+							Block sign = b.getRelative(i,j,k);
+							if(sign.getState() instanceof Sign)
+								signs.add((Sign)sign.getState());
+						}
+				if(signs.isEmpty()){
+					tp.sensedSign = null;
+					tp.canAutoTele = true;
+					tp.stopEnterTimer();
+					return;
+				}
+				if(tp.canAutoTele){
+					if(tp.sensedSign == null){
+						for(Sign sign : signs){
+							if(sign.getLine(3).equals("sensor")){
+								tp.sensedSign = sign;
+								TempleManager.tellPlayer(p, "You found the enterance to a temple!! Stand still to Enter!");
+								tp.startEnterTimer(p);
+							}
+						}
+					} else {
+						tp.resetEnterTimer(p);
+					}
+				}
+			}
+			return;
+		}
 		
 		if (!TCUtils.isTCWorld(event.getPlayer().getWorld()))
             return;
 		
 		if(!TempleManager.isEnabled || TempleManager.templeSet.isEmpty())
-			return;
-		
-		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-		Temple temple = tp.currentTemple;
-		
-		if(temple == null)
 			return;
 		
 		// Slows hurt players in Zombies
@@ -225,8 +256,8 @@ public class TCPlayerListener  extends PlayerListener{
 				TCMobHandler.SpawnMobs(game, loc, game.mobSpawnpointMap.remove(loc));
 		}
 	 }
-	 
-	private void handleSignClicked(Player p, Sign sign) {
+
+	public static void handleSignClicked(Player p, Sign sign) {
 		String Line1 = sign.getLine(0);
         String Line2 = sign.getLine(1);
         String Line3 = sign.getLine(2);

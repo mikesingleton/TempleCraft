@@ -203,9 +203,11 @@ public class Zombies extends Game{
 	}
 	
 	public void endTimer(){
-		for(TimerTask task : taskSet)
-			task.cancel();
-		gameTimer.cancel();
+		try{
+			gameTimer.cancel();
+		}catch(IllegalStateException e){
+			e.printStackTrace();
+		}
 	}
 	
 	public void nextRound() {
