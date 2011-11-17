@@ -1,22 +1,31 @@
-package com.msingleton.templecraft;
+package com.msingleton.templecraft.listeners;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.inventory.ItemStack;
 
+import com.msingleton.templecraft.TCPermissionHandler;
+import com.msingleton.templecraft.TCUtils;
+import com.msingleton.templecraft.Temple;
+import com.msingleton.templecraft.TempleCraft;
+import com.msingleton.templecraft.TempleManager;
+import com.msingleton.templecraft.TemplePlayer;
 import com.msingleton.templecraft.games.Game;
+import com.msingleton.templecraft.scoreboards.ScoreBoard;
 //import org.bukkit.event.block.BlockDamageEvent;
 
 
 /**
  * This listener serves as a protection class. Blocks within
- * the arena region cannot be destroyed, and blocks can only
+ * the game world cannot be destroyed, and blocks can only
  * be placed by a participant in the current arena session.
- * Any placed blocks will be removed by the cleanup method in
- * TempleManager when the session ends.
  */
 public class TCBlockListener extends BlockListener
 {    
@@ -34,6 +43,30 @@ public class TCBlockListener extends BlockListener
     	Block b = event.getBlock();
     	
     	Temple temple = tp.currentTemple;
+    	
+    	if(b.getState() instanceof Sign){
+    		Sign sign = (Sign) b.getState();
+    		ScoreBoard sb = TempleManager.SBManager.getScoreBoardBySign(sign);
+    		if(sb != null){
+    			if(TCPermissionHandler.hasPermission(p, "templecraft.placesigns")){
+    				TempleManager.SBManager.deleteScoreBoard(sb);
+    				p.getWorld().dropItemNaturally(b.getLocation(), new ItemStack(323,1));
+    				return;
+    			} else {
+    				TempleManager.tellPlayer(p, "You do not have permission to break TCScoreBoards.");
+    				event.setCancelled(true);
+    				return;
+    			}
+    		}
+    	}
+    	
+    	for(ScoreBoard sb : TempleManager.SBManager.scoreBoards){
+    		if(sb.inRegion(b.getLocation())){
+    			TempleManager.tellPlayer(p, "This Block is Protected by ScoreBoard"+sb.id);
+				event.setCancelled(true);
+				return;
+    		}
+    	}
     	
     	if(temple == null)
     		return;
@@ -68,7 +101,7 @@ public class TCBlockListener extends BlockListener
      * region, cancel the event if protection is on.
      */
     public void onBlockPlace(BlockPlaceEvent event)
-    {
+    {    	
     	Player p = event.getPlayer();
     	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
     	Block b = event.getBlock();
@@ -76,7 +109,7 @@ public class TCBlockListener extends BlockListener
     	Temple temple = tp.currentTemple;
     	
     	if(temple == null)
-    		return;
+	    	return;
     	
     	// if player places significant block while editing, record it
     	if(TCUtils.isTCEditWorld(p.getWorld())){
@@ -107,5 +140,29 @@ public class TCBlockListener extends BlockListener
         }
 
         event.setCancelled(true);
+    }
+    
+    public void onSignChange(SignChangeEvent event){
+    	Player p = event.getPlayer();
+    	TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+    	
+    	Temple temple = tp.currentTemple;
+    	
+    	if(temple == null){
+    		if(event.getLine(0).equals("[TCSB]") || event.getLine(0).equals("[TCS]") || event.getLine(0).equals("[TC]") || event.getLine(0).equals("[TempleCraft]")){
+    			if(!TCPermissionHandler.hasPermission(p, "templecraft.placesigns")){
+    				TempleManager.tellPlayer(p, "You do not have permission to place temple entrances.");
+    				event.setCancelled(true);
+    				return;
+    			}
+    		}
+    		if(event.getLine(0).equals("[TCSB]")){
+    			Location loc      = event.getBlock().getLocation();
+    			String templeName = event.getLine(1).toLowerCase();
+    			String gameMode   = event.getLine(2).toLowerCase();
+    			String type       = event.getLine(3).toLowerCase();
+    			TempleManager.SBManager.newScoreBoard(loc, loc, templeName, gameMode, type);
+    		}
+	    }
     }
 }

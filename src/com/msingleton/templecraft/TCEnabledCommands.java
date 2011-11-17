@@ -21,6 +21,9 @@ public class TCEnabledCommands extends PlayerListener
         Player p = event.getPlayer();
         TemplePlayer tp = TempleManager.templePlayerMap.get(p);
         
+        if(p.isOp())
+        	return;
+        
         if (!TempleManager.playerSet.contains(p))
             return;
         

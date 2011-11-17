@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 import java.util.logging.Logger;
 
+import org.bukkit.ChatColor;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.event.block.BlockListener;
@@ -15,6 +16,14 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.PluginManager;
 
+import com.msingleton.templecraft.listeners.TCBlockListener;
+import com.msingleton.templecraft.listeners.TCDamageListener;
+import com.msingleton.templecraft.listeners.TCDisconnectListener;
+import com.msingleton.templecraft.listeners.TCMonsterListener;
+import com.msingleton.templecraft.listeners.TCPlayerListener;
+import com.msingleton.templecraft.listeners.TCServerListener;
+import com.msingleton.templecraft.listeners.TCTeleportListener;
+import com.msingleton.templecraft.util.MobArenaClasses;
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
 import com.nijikokun.register.payment.Method;
@@ -29,14 +38,14 @@ public class TempleCraft extends JavaPlugin
 {
     /* Array of commands used to determine if a command belongs to TempleCraft
      * or Mean Admins. */
-    public static final String[] COMMANDS = {"newgame", "join", "j", "leave", "l", "playerlist", "plist", "templelist", "tlist",
-    										"gamelist","glist", "ready", "notready", "checkupdates", "forcestart", "forceend",
-                                      		"new", "edit", "save", "reload"};
     private Logger log;
     public List<String> ENABLED_COMMANDS;
     public static Method method = null;
     public static PermissionHandler permissionHandler;
     public static String fileExtention = ".tcf";
+    public static ChatColor c1 = ChatColor.DARK_AQUA;
+	public static ChatColor c2 = ChatColor.WHITE;
+	public static ChatColor c3 = ChatColor.GREEN;
     
     public TempleCraft()
     {
@@ -88,9 +97,10 @@ public class TempleCraft extends JavaPlugin
         pm.registerEvent(Event.Type.PLAYER_JOIN,      discListener,     Priority.Normal,  this);
         pm.registerEvent(Event.Type.BLOCK_BREAK,      blockListener,    Priority.Normal,  this);
         pm.registerEvent(Event.Type.BLOCK_PLACE,      blockListener,    Priority.Normal,  this);
+        pm.registerEvent(Event.Type.SIGN_CHANGE,      blockListener,    Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_DAMAGE,    damageListener,   Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_DEATH,     damageListener,   Priority.Normal,  this);
-        pm.registerEvent(Event.Type.CREATURE_SPAWN,   monsterListener,   Priority.Normal,  this);
+        pm.registerEvent(Event.Type.CREATURE_SPAWN,   monsterListener,  Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_EXPLODE,   monsterListener,  Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_COMBUST,   monsterListener,  Priority.Normal,  this);
         pm.registerEvent(Event.Type.ENTITY_TARGET,    monsterListener,  Priority.Normal,  this);
@@ -101,9 +111,23 @@ public class TempleCraft extends JavaPlugin
     }
     
     
-    public void onDisable()
+    // May add support for Citizens in the future...
+    /*@SuppressWarnings("unused")
+	private boolean getCitizens() {
+    	if(TempleManager.server.getPluginManager().getPlugin("Citizens") != null){
+    		if(TempleManager.constantWorldNames){
+    			System.out.println("[TempleCraft] Found Citizens!");
+    			return true;
+    		} else
+    			System.out.println("[TempleCraft] Found Citizens! Set constantWorldNames to true if you want to use them in Temples.");
+    	}
+    	return false;
+	}*/
+
+	public void onDisable()
     {    
     	permissionHandler = null;
+    	TempleManager.SBManager.save();
         TempleManager.removeAll();
         TCUtils.deleteTempWorlds();
         TCUtils.cleanConfigFiles();

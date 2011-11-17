@@ -1,29 +1,35 @@
 package com.msingleton.templecraft;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import com.msingleton.templecraft.games.Game;
+import com.msingleton.templecraft.listeners.TCPlayerListener;
 
 public class TemplePlayer{
 	public Set<Object> tempSet = new HashSet<Object>();
-	private Player player;
-	protected int roundMobsKilled, roundPlayersKilled, roundGold;
+	public List<ItemStack> rewards = new ArrayList<ItemStack>();
+	public int roundMobsKilled;
+	protected int roundPlayersKilled;
+	public int roundGold;
 	public int roundDeaths;
-	protected Sign sensedSign;
-	protected boolean canAutoTele;
+	public Sign sensedSign;
+	public boolean canAutoTele;
 	protected int ownedTemples;
     protected String name;
     protected Timer playerTimer = new Timer();
     protected TimerTask enterTempleTask;
     protected TimerTask counter;
+    protected int count;
     public Location currentCheckpoint;
     public Temple currentTemple;
     public Game currentGame;
@@ -32,12 +38,10 @@ public class TemplePlayer{
 	}
 	
 	public TemplePlayer(Player p){
-		player       = p;
 		name         = p.getName();
 		ownedTemples = 0;
 		canAutoTele  = false;
     	resetRoundStats();
-    	//getRefresher();
     	getOwnedTemples();
 	}
 
@@ -47,16 +51,16 @@ public class TemplePlayer{
 				ownedTemples++;
 	}
 
-	protected void displayStats(){
+	/*protected void displayStats(){
 		//TO DO: this
-		player.sendMessage("-----TempleCraft Stats-----");
+		player.sendMessage("----TempleCraft Stats----");
 		player.sendMessage(ChatColor.BLUE+"Mobs Killed: "+ChatColor.WHITE+roundMobsKilled);
 		player.sendMessage(ChatColor.GOLD+"Gold Collected: "+ChatColor.WHITE+roundGold);
 		player.sendMessage(ChatColor.DARK_RED+"Deaths: "+ChatColor.WHITE+roundDeaths);
 		resetRoundStats();
-	}
+	}*/
 	
-	private void resetRoundStats() {
+	public void resetRoundStats() {
 		roundGold           = 0;
 		roundMobsKilled     = 0;
 		roundPlayersKilled  = 0;
@@ -65,38 +69,28 @@ public class TemplePlayer{
 	
 	public void startEnterTimer(final Player p) {
 		final TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-		
+		count = 5;
 		counter = new TimerTask() {
             public void run()
             {
-            	int timeRemaining = (int)(Math.ceil(enterTempleTask.scheduledExecutionTime()-System.currentTimeMillis())/1000.0);
-            	if(timeRemaining <= 3 && timeRemaining > 0){
-            		TempleManager.tellPlayer(p, "Entering Temple in "+timeRemaining+"...");
-            	} else if(timeRemaining <= 0){
+            	if(count <= 3 && count > 0){
+            		TempleManager.tellPlayer(p, "Entering Temple in "+count+"...");
+            	} else if(count <= 0){
+            		TCPlayerListener.handleSignClicked(p,tp.sensedSign);
+    	    		tp.sensedSign = null;
+    	    		tp.canAutoTele = false;
             		cancel();
             	}
+            	count--;
             }
 		};
 		
-		enterTempleTask= new TimerTask() {
-	        public void run()
-	        {
-	        	TCPlayerListener.handleSignClicked(p,tp.sensedSign);
-	    		tp.sensedSign = null;
-	    		tp.canAutoTele = false;
-	    		stopEnterTimer();
-	        }
-		};
-		
 		playerTimer.scheduleAtFixedRate(counter, 0, 1000);
-		playerTimer.schedule(enterTempleTask, 5000);
 	}
 
 	public void stopEnterTimer() {
 		if(counter != null)
 			counter.cancel();
-		if(enterTempleTask != null)
-			enterTempleTask.cancel();
 	}
 	
 	public void resetEnterTimer(Player p) {

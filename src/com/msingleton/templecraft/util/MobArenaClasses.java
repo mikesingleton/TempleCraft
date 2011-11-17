@@ -1,4 +1,4 @@
-package com.msingleton.templecraft;
+package com.msingleton.templecraft.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import com.msingleton.templecraft.TCUtils;
+import com.msingleton.templecraft.TempleCraft;
 import com.msingleton.templecraft.TemplePlayer;
 import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.games.Game;

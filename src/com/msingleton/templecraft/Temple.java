@@ -24,12 +24,12 @@ public class Temple {
     public String templeName;
     public boolean isSetup;
     protected boolean isEnabled;
+    public int maxPlayersPerGame = -1;
     protected String owners;
     protected String editors;
     protected File ChunkGeneratorFile;
     
     // Sets and Maps for storing players and their locations.
-    protected Set<Player> playerSet   = new HashSet<Player>();
     protected Set<String> ownerSet    = new HashSet<String>();
     protected Set<String> accessorSet = new HashSet<String>();
     protected Set<Player> editorSet   = new HashSet<Player>();
@@ -48,9 +48,10 @@ public class Temple {
 		config     = TCUtils.getConfig("temples");
 		templeName = name;
 		//Fix isSetup and Class item things
-		owners     = TCUtils.getString(config,"Temples."+name+".owners", "");
-		editors    = TCUtils.getString(config,"Temples."+name+".editors", "");
-		isSetup    = TCUtils.getBoolean(config,"Temples."+name+".isSetup", false);
+		owners            = TCUtils.getString(config,"Temples."+name+".owners", "");
+		editors           = TCUtils.getString(config,"Temples."+name+".editors", "");
+		isSetup           = TCUtils.getBoolean(config,"Temples."+name+".isSetup", false);
+		maxPlayersPerGame = TCUtils.getInt(config,"Temples."+name+".maxPlayersPerGame", -1);
 		isEnabled  = true;
 		ChunkGeneratorFile = TCRestore.getChunkGenerator(this);
 		loadEditors();
@@ -115,7 +116,6 @@ public class Temple {
 			result.setAutoSave(false);
 		
 		result.setKeepSpawnInMemory(false);
-		
 		coordLocSet.addAll(TCRestore.getSignificantLocs(this, result));
 		return result;
 	}
@@ -331,14 +331,5 @@ public class Temple {
 	    return;
 	
 	p.sendMessage(ChatColor.GREEN + "[TC] " + ChatColor.WHITE + msg);
-	}
-	
-	/**
-	* Sends a message to all players in the Temple.
-	*/
-	protected void tellAll(String msg)
-	{
-		for(Player p: playerSet)
-			tellPlayer((Player)p, msg);	    
 	}
 }

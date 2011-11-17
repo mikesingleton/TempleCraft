@@ -13,10 +13,10 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
-import com.msingleton.templecraft.MobArenaClasses;
 import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.Temple;
 import com.msingleton.templecraft.TempleManager;
+import com.msingleton.templecraft.util.MobArenaClasses;
 
 public class Spleef extends Game{	
 	public Map<Location,Integer> checkpointMap = new HashMap<Location,Integer>();
@@ -110,7 +110,7 @@ public class Spleef extends Game{
 		super.playerDeath(p);
 		aliveSet.remove(p);
 		if(aliveSet.size() == 1){
-			winner = (Player)playerSet.toArray()[0];
+			winner = (Player)aliveSet.toArray()[0];
 			endRound();
 		} else if(aliveSet.isEmpty()){
 			winner = p;

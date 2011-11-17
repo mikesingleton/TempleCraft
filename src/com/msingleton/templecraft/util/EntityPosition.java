@@ -1,4 +1,4 @@
-package com.msingleton.templecraft;
+package com.msingleton.templecraft.util;
 
 import java.io.Serializable;
 import org.bukkit.Location;

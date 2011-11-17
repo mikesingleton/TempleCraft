@@ -1,4 +1,4 @@
-package com.msingleton.templecraft;
+package com.msingleton.templecraft.util;
 
 import org.bukkit.GameMode;
 import org.bukkit.inventory.ItemStack;

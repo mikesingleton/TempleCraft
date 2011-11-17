@@ -1,4 +1,4 @@
-package com.msingleton.templecraft;
+package com.msingleton.templecraft.listeners;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -8,9 +8,14 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+
+import com.msingleton.templecraft.TCUtils;
+import com.msingleton.templecraft.TempleCraft;
+import com.msingleton.templecraft.TempleManager;
+import com.msingleton.templecraft.TemplePlayer;
 import com.msingleton.templecraft.games.Adventure;
 import com.msingleton.templecraft.games.Game;
-import com.msingleton.templecraft.games.Zombies;
+import com.msingleton.templecraft.games.Arena;
 
 /**
  * This listener acts as a type of death-listener.
@@ -50,10 +55,9 @@ public class TCDamageListener extends EntityListener
     			return;
     		}
  
-    		if(game instanceof Zombies){
+    		if(game instanceof Arena){
     			// Increases the damage zombies do over time for zombies mode
-    			event.setDamage((int) (event.getDamage()*((Zombies)game).getDamageMultiplyer()));
-    			((Zombies)game).hurtPlayer(p);
+    			event.setDamage((int) (event.getDamage()*((Arena)game).getDamageMultiplyer()));
     		}
     	}
     	
@@ -73,7 +77,7 @@ public class TCDamageListener extends EntityListener
 	        if(entity instanceof Player && entity2 instanceof Player){
 	        	Player p = (Player)event.getEntity();
 	        	Game game = TempleManager.templePlayerMap.get(p).currentGame;
-		        if(game instanceof Zombies){
+		        if(game instanceof Arena){
 	    			event.setCancelled(true);
 	    		}
 	        }
@@ -143,10 +147,10 @@ public class TCDamageListener extends EntityListener
 
             event.getDrops().clear();
             game.monsterSet.remove(e);
-            // Starts a new round if all the round's zombies are killed for zombies mode
-            if(game instanceof Zombies)
+            // Starts a new round if all the round's mobs are killed for Arena mode
+            if(game instanceof Arena)
             	if(game.monsterSet.isEmpty())
-            		((Zombies)game).nextRound();
+            		((Arena)game).nextRound();
         }
     }
 }

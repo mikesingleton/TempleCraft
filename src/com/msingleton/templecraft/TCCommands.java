@@ -110,8 +110,12 @@ public class TCCommands implements CommandExecutor
         	}
         	p.sendMessage(ChatColor.GREEN+"Game List:");
         	for(Game game : TempleManager.gameSet)
-        		if(game != null)
-        			p.sendMessage(game.gameName);
+        		if(game != null){
+        			if(game.isRunning)
+        				p.sendMessage(game.gameName+": "+ChatColor.RED+"In Progress");
+        			else
+        				p.sendMessage(game.gameName+": "+ChatColor.GREEN+"In Lobby");
+        		}
             return true;
         }
         
@@ -205,6 +209,7 @@ public class TCCommands implements CommandExecutor
     	
         if (cmd.equals("new") && TCPermissionHandler.hasPermission(p, "templecraft.newtemple"))
         {
+        	TempleManager.tellPlayer(p, "Attempting to create new Temple \""+args[0]+"\"...");
         	if(args.length == 2)
         		TCUtils.newTemple(p, arg, null, true);
         	else if(args.length == 3)
@@ -213,7 +218,7 @@ public class TCCommands implements CommandExecutor
         }
         
         if (cmd.equals("newgame") && TCPermissionHandler.hasPermission(p, "templecraft.newgame"))
-        {        	
+        {
         	TCUtils.newGameCommand(p, args);
     		return true;
         }
@@ -229,6 +234,65 @@ public class TCCommands implements CommandExecutor
     		
         	TCUtils.removeTemple(temple);
         	TempleManager.tellPlayer(p, "Temple \""+arg+"\" deleted");
+            return true;
+        }
+        
+        if (cmd.equals("rename") && TCPermissionHandler.hasPermission(p, "templecraft.renametemple"))
+        {
+        	Temple temple;
+        	String result;
+        	if(args.length == 2){
+        		temple = tp.currentTemple;
+	    		result = arg;
+	    		if(temple == null){
+	    			TempleManager.tellPlayer(p, "You must be in a temple to use this command.");
+	    			return true;
+	    		}
+        	} else if(args.length == 3){
+	        	temple = TCUtils.getTempleByName(arg);
+	    		result = args[2];
+	    		if(temple == null){
+	    			TempleManager.tellPlayer(p, "Temple \""+arg+"\" does not exist");
+	    			return true;
+	    		}
+        	} else {
+        		return true;
+        	}
+        	Temple newtemple = TCUtils.getTempleByName(result);
+        	if(newtemple == null){
+    			TCUtils.renameTemple(temple, arg);
+    		} else {
+    			TempleManager.tellPlayer(p, "Temple \""+result+"\" already exists");
+    			return true;
+    		}
+        	TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" renamed to \""+result+"\"");
+            return true;
+        }
+        
+        if (cmd.equals("setmaxplayers") && TCPermissionHandler.hasPermission(p, "templecraft.setmaxplayers"))
+        {
+        	Temple temple;
+        	String number;
+        	if(args.length == 2){
+        		temple = tp.currentTemple;
+	    		number = arg;
+        	} else if(args.length == 3){
+	        	temple = TCUtils.getTempleByName(arg);
+	    		number = args[2];
+        	} else {
+        		return true;
+        	}
+        	if(temple == null){
+    			TempleManager.tellPlayer(p, "Temple \""+arg+"\" does not exist");
+    			return true;
+    		}
+        	try{
+    			int value = Integer.parseInt(number);
+    			TCUtils.setTempleMaxPlayers(temple, value);
+            	TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" maxPlayers set to "+value);
+    		}catch(Exception e){
+    			TempleManager.tellPlayer(p, "setTempleMaxPlayers got invalid variable for expected integer");
+    		}
             return true;
         }
         
@@ -331,7 +395,29 @@ public class TCCommands implements CommandExecutor
             return true;
         }
         
-        //Temple commands
+        if (cmd.equals("findsigblocks") && TCPermissionHandler.hasPermission(p, "templecraft.findsigblocks"))
+        {
+        	try{
+        		int radius = Integer.parseInt(arg);
+        		Temple temple = tp.currentTemple;
+        		
+        		if(temple == null){
+        			TempleManager.tellPlayer(p, "You must be in a temple to use this command");
+        			return true;
+        		}
+        		
+        		TCUtils.getSignificantBlocks(p, radius);
+        		return true;
+        	} catch(Exception e){
+        		TempleManager.tellPlayer(p, "Invalid argument for expected integer.");
+        		return true;
+        	}
+        }
+        
+        if(!(cmd.equals("join") || cmd.equals("j") || cmd.equals("forcestart") || cmd.equals("forceend")))
+        	return false;
+        		
+        //Game commands
         String gamename = args[1].toLowerCase();
         Game game = TCUtils.getGameByName(gamename);
         

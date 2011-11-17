@@ -1,10 +1,15 @@
-package com.msingleton.templecraft;
+package com.msingleton.templecraft.listeners;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+
+import com.msingleton.templecraft.TCUtils;
+import com.msingleton.templecraft.TempleCraft;
+import com.msingleton.templecraft.TempleManager;
+import com.msingleton.templecraft.TemplePlayer;
 
 /**
  * This listener acts when a player is kicked or disconnected

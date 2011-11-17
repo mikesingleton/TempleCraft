@@ -1,16 +1,19 @@
 package com.msingleton.templecraft;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 public class TCPermissionHandler {
-	public static String[] allPermissions = {"tc","newgame","join","leave","ready","templelist","gamelist","playerlist","forcestart","forceend","checkupdates","newtemple","edittemple","deletetemple","savetemple","worldtotemple","addplayer","removeplayer"};
-	public static ChatColor c1 = ChatColor.DARK_AQUA;
-	public static ChatColor c2 = ChatColor.WHITE;
+	public static String[] allPermissions = {"tc","newgame","join","leave","ready","templelist","gamelist","playerlist","forcestart","forceend","checkupdates","newtemple","edittemple","deletetemple","savetemple","renametemple","worldtotemple","addplayer","removeplayer","setmaxplayers","findsigblocks"};
+	public static ChatColor c1 = TempleCraft.c1;
+	public static ChatColor c2 = TempleCraft.c2;
 	public static String[] descriptions = {
-		c1+"/tc <pageNumber>"+c2+"       - Help Menu",
+		c1+"/tc (pageNumber)"+c2+"       - Help Menu",
 		c1+"/tc newgame <temple> <mode>"+c2+" - Create a new game.",
-		c1+"/tc join <game>"+c2+" - Join Game <game>.",
+		c1+"/tc join (game)"+c2+" - Join Game <game>.",
 		c1+"/tc leave"+c2+"          - Leave current Temple.",
 		c1+"/tc ready"+c2+"         - List of players who aren't ready.",
 		c1+"/tc tlist"+c2+"            - Lists Temples.",
@@ -23,12 +26,14 @@ public class TCPermissionHandler {
 		c1+"/tc edit <temple>"+c2+"     - Edit an existing temple.",
 		c1+"/tc delete <temple>"+c2+"  - Delete an existing temple.",
 		c1+"/tc save"+c2+"               - Save the current temple.",
+		c1+"/tc rename <newName>"+c2+" - Renames the temple to <newName>.",
 		c1+"/tc worldtotemple <temple>"+c2+" - Save current World as a temple.",
 		c1+"/tc add <player>"+c2+"     - Allows a player to edit your temple.",
-		c1+"/tc remove <player>"+c2+" - Disallows a player to edit your temple."
+		c1+"/tc remove <player>"+c2+" - Disallows a player to edit your temple.",
+		c1+"/tc setmaxplayers <integer>"+c2+" - Sets max players per game.",
+		c1+"/tc findsigblocks <radius>"+c2+" - Finds significant blocks."
 	};
 	public static int entsPerPage = 7;
-	public static int totalPages = (int)Math.ceil(allPermissions.length/(double)entsPerPage);
 	public static String[] editBasics = {"newtemple","edittemple","savetemple","addplayer","removeplayer","templelist","gamelist","playerlist"};
 	
 	public static boolean hasPermission(Player p, String s){
@@ -46,6 +51,8 @@ public class TCPermissionHandler {
 	}
 
 	public static void sendResponse(Player p, int page) {
+		List<String> personalPerms = getPerms(p);
+		int totalPages = (int)Math.ceil(personalPerms.size()/(double)entsPerPage);
 		if(page<0 || page>totalPages){
 			p.sendMessage("Page "+page+" not found");
 			return;
@@ -55,10 +62,19 @@ public class TCPermissionHandler {
 		p.sendMessage(c1+"-----------"+c2+" TempleCraft Help ("+page+"/"+totalPages+") "+c1+"-----------");
 		int start = (page-1)*entsPerPage;
 		int end = page*entsPerPage;
-		for(int i = start; i < end; i++)
-			if(i >= allPermissions.length)
+		for(int i = start; i < end; i++){
+			if(personalPerms.size() > i)
+				p.sendMessage(personalPerms.get(i));
+			else
 				p.sendMessage("");
-			else if(hasPermission(p, allPermissions[i]))
-				p.sendMessage(descriptions[i]);
+		}
+	}
+
+	private static List<String> getPerms(Player p) {
+		List<String> result = new ArrayList<String>(); 
+		for(int i = 0; i < allPermissions.length;i++)
+			if(hasPermission(p,allPermissions[i]))
+				result.add(descriptions[i]);
+		return result;
 	}
 }

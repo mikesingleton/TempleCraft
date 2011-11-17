@@ -1,9 +1,15 @@
-package com.msingleton.templecraft;
+package com.msingleton.templecraft.listeners;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerTeleportEvent;
+
+import com.msingleton.templecraft.TCUtils;
+import com.msingleton.templecraft.Temple;
+import com.msingleton.templecraft.TempleCraft;
+import com.msingleton.templecraft.TempleManager;
+import com.msingleton.templecraft.TemplePlayer;
 
 /**
  * This listener prevents players from warping out of the arena, if

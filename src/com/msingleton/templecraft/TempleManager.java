@@ -17,7 +17,8 @@ import org.bukkit.entity.Player;
 
 
 import com.msingleton.templecraft.games.Game;
-import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.msingleton.templecraft.scoreboards.ScoreBoardManager;
+import com.msingleton.templecraft.util.MobArenaClasses;
 
 public class TempleManager
 {
@@ -25,15 +26,20 @@ public class TempleManager
 	
     // Convenience variables.
     public static TempleCraft plugin        = null;
-    public static WorldEditPlugin worldEdit = null;
     public static Server   server           = null;
+    public static ScoreBoardManager SBManager;
     public static boolean isEnabled         = true;
-    protected static boolean checkUpdates;
-    protected static boolean dropBlocks;
-    protected static boolean constantWorldNames;
+    public static boolean checkUpdates;
+    public static boolean dropBlocks;
+    public static boolean constantWorldNames;
+    
+    // Colors
+    public static ChatColor c1 = TempleCraft.c1;
+	public static ChatColor c2 = TempleCraft.c2;
+	public static ChatColor c3 = TempleCraft.c3;
     
     // Configuration
-    protected static File config = null;
+    public static File config = null;
     
     // A Map of which temples are being editted in which World
     public static Map<String,World> templeEditMap  = new HashMap<String,World>();
@@ -46,7 +52,7 @@ public class TempleManager
     public static String goldPerMob;
     
     final public static String[] mobs = {"Chicken","Cow","Pig","Sheep","Zombie","PigZombie","Skeleton","Creeper","Wolf","Ghast","Monster","Slime","Spider","Squid","CaveSpider","Enderman"};
-    final public static Set<String> modes = new HashSet<String>(Arrays.asList("adventure","zombies","spleef"));
+    final public static Set<String> modes = new HashSet<String>(Arrays.asList("adventure","race","spleef"));
     //future modes: "race","ctf","koth","assult","assassin"
     
     // Flatland Configs
@@ -73,19 +79,20 @@ public class TempleManager
             config 		           = TCUtils.getConfig("config");
             server                 = plugin.getServer();
             
-            // Configurable
-            repairDelay            = TCUtils.getInt("settings.repairdelay", 5);
-            maxEditWorlds          = TCUtils.getInt("settings.maxeditworlds", 2);
-            maxTemplesPerPerson    = TCUtils.getInt("settings.maxtemplesperperson", 1);
-            rejoinCost             = TCUtils.getInt("settings.rejoincost", 0);
+            // Configuration
+            repairDelay            = TCUtils.getInt(config, "settings.repairdelay", 5);
+            maxEditWorlds          = TCUtils.getInt(config, "settings.maxeditworlds", 2);
+            maxTemplesPerPerson    = TCUtils.getInt(config, "settings.maxtemplesperperson", 1);
+            rejoinCost             = TCUtils.getInt(config, "settings.rejoincost", 0);
             breakableMats          = TCUtils.getString(config, "settings.breakablemats", "31,37,38,39,40,46,82");
             goldPerMob             = TCUtils.getString(config, "settings.goldpermob", "50-100");
             dropBlocks             = TCUtils.getBoolean(config, "settings.dropblocks", false);
-            constantWorldNames    = TCUtils.getBoolean(config, "settings.constantworldnames", false);
+            constantWorldNames     = TCUtils.getBoolean(config, "settings.constantworldnames", false);
             
         	loadMisc();
         	loadTemplePlayers();
 	    	loadCustomTemples();
+	    	SBManager = new ScoreBoardManager();
         }
         // Convenience variables.
         checkUpdates            = TCUtils.getBoolean(config, "settings.updatenotification", true);
@@ -174,8 +181,12 @@ public class TempleManager
 	*/
     
     public static void playerLeave(Player p)
-	{
+	{    	
     	TemplePlayer tp = templePlayerMap.get(p);
+    	
+    	if(tp == null)
+    		return;
+    	
     	Temple temple = tp.currentTemple;
     	Game game = tp.currentGame;
     	
@@ -186,6 +197,11 @@ public class TempleManager
 		tp.currentTemple = null;
 		tp.currentGame = null;
 		tp.currentCheckpoint = null;
+		tp.resetRoundStats();
+		if(game != null){
+			game.readySet.remove(p);
+			game.playerSet.remove(p);
+		}
 		playerSet.remove(p);
 		MobArenaClasses.classMap.remove(p);
 		
@@ -201,21 +217,19 @@ public class TempleManager
 		locationMap.remove(p);
 		
 		if(temple.editorSet.remove(p)){
-			if(templeEditMap.containsKey(temple.templeName) && !TempleManager.constantWorldNames)
+			if(temple.editorSet.isEmpty() && templeEditMap.containsKey(temple.templeName))
 				TCUtils.deleteTempWorld(templeEditMap.remove(temple.templeName));
-		} else
-			tp.displayStats();
+		}// else
+			//tp.displayStats();
 		
-		if(game != null){
-			// Players are only removed from the readySet when they use /tc leave
-			if (game.readySet.remove(p) && !game.readySet.isEmpty() && game.readySet.equals(temple.playerSet))
-				if(!game.isRunning)
+		if(game != null && !game.isEnding){
+			if(game.readySet.equals(game.playerSet)){
+				if(!game.isRunning){
 					game.startGame();
-			
-			// Players are removed from the playerSet when they use /tc leave or the temple is ending
-			if(game.playerSet.remove(p))
-				if(game.playerSet.isEmpty())
+				} else {
 					game.endGame();
+				}
+			}
 		}
 	}
 
@@ -257,12 +271,11 @@ public class TempleManager
 	/**
 	* Sends a message to a player.
 	*/
-	public static void tellPlayer(Player p, String msg)
-	{
+	public static void tellPlayer(Player p, String msg){
 	if (p == null)
 	    return;
 	
-	p.sendMessage(ChatColor.GREEN + "[TC] " + ChatColor.WHITE + msg);
+	p.sendMessage(c3 + "[TC] " + c2 + msg);
 	}
 	
 	/**

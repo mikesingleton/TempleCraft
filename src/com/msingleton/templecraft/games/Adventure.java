@@ -1,24 +1,27 @@
 package com.msingleton.templecraft.games;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
-import com.msingleton.templecraft.MobArenaClasses;
+import org.bukkit.event.player.PlayerMoveEvent;
+
+import com.msingleton.templecraft.TCMobHandler;
 import com.msingleton.templecraft.Temple;
 import com.msingleton.templecraft.TempleCraft;
 import com.msingleton.templecraft.TempleManager;
+import com.msingleton.templecraft.TemplePlayer;
+import com.msingleton.templecraft.util.MobArenaClasses;
 import com.nijikokun.register.payment.Method.MethodAccount;
 
-public class Adventure extends Game{	
-	public Map<Location,Integer> checkpointMap = new HashMap<Location,Integer>();
-    public Map<Location,String[]> chatMap      = new HashMap<Location,String[]>();
-	
+public class Adventure extends Game{
 	public Adventure(String name, Temple temple, World world) {
 		super(name, temple, world);
 	}
@@ -73,31 +76,64 @@ public class Adventure extends Game{
 	
 	protected void handleSign(Sign sign) {
 		String[] Lines = sign.getLines();
-		Block b = sign.getBlock();
 		
-		
-		if(!Lines[0].equals("[TempleCraft]") && !Lines[0].equals("[TC]")){
-			if(Lines[0].equals("[TempleCraftM]") || Lines[0].equals("[TCM]")){
-				String[] newLines = {Lines[1]+Lines[2],Lines[3]};
-				chatMap.put(b.getLocation(), newLines);
-				b.setTypeId(0);
-			}
+		if(!Lines[0].equals("[TempleCraft]") && !Lines[0].equals("[TC]") && !Lines[0].equals("[TempleCraftM]") && !Lines[0].equals("[TCM]"))
 			return;
-		}
 			
 		if(Lines[1].toLowerCase().equals("classes")){
 			if(MobArenaClasses.enabled){
 				usingClasses = true;
 				MobArenaClasses.generateClassSigns(sign);
 			}
-		} else if(Lines[1].toLowerCase().equals("checkpoint")){
-			try{
-				checkpointMap.put(sign.getBlock().getLocation(), Integer.parseInt(Lines[3]));
-			} catch(Exception e){
-				checkpointMap.put(sign.getBlock().getLocation(), 5);
-			}
-			b.setTypeId(0);
 		}
 		super.handleSign(sign);
+	}
+	
+	public void hitEndBlock(Player p) {
+		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+		if (playerSet.contains(p))
+        {            	
+        	readySet.add(p);
+        	rewardSet.add(p);
+        	tp.rewards = rewards;
+        	int totalTime = (int)(System.currentTimeMillis()-startTime)/1000;
+        	tellPlayer(p, "You finished in "+totalTime+" seconds!");
+        	
+        	// Update ScoreBoards
+        	List<String> scores = new ArrayList<String>();
+        	scores.add(p.getDisplayName());
+        	scores.add(tp.roundMobsKilled + "");
+        	scores.add(tp.roundGold + "");
+        	scores.add(tp.roundDeaths + "");
+        	scores.add(totalTime + "");
+        	TempleManager.SBManager.updateScoreBoards(this, scores);
+        	
+        	if(readySet.equals(playerSet)){
+        		endGame();
+        	} else {
+        		tellPlayer(p, "You are ready to leave!");
+        		tp.currentCheckpoint = null;
+        	}
+        }
+        else
+        {
+            tellPlayer(p, "WTF!? Get out of here!");
+        }
+	}
+	
+	public void onPlayerMove(PlayerMoveEvent event){
+		super.onPlayerMove(event);		
+		Player p = event.getPlayer();
+		
+		if(!isRunning)
+			return;
+		
+		Set<Location> tempLocs = new HashSet<Location>();
+		for(Location loc : mobSpawnpointMap.keySet())
+			 if(p.getLocation().distance(loc) < mobSpawnpointMap.get(loc).b)
+				tempLocs.add(loc);
+
+		for(Location loc : tempLocs)
+			TCMobHandler.SpawnMobs(this, loc, mobSpawnpointMap.remove(loc).a);
 	}
 }

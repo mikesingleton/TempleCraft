@@ -1,7 +1,7 @@
 name: TempleCraft
 author: Mike Singleton
 main: com.msingleton.templecraft.TempleCraft
-version: 0.41
+version: 0.42
 commands:
   tc:
     description: Base command for TempleCraft
@@ -23,11 +23,16 @@ permissions:
             templecraft.savetemple: true
             templecraft.worldtotemple: true
             templecraft.converttemples: true
+            templecraft.placesigns: true
+            templecraft.renametemple: true
+            templecraft.setmaxplayers: true
+            templecraft.findsigblocks: true
 
     templecraft.editbasics:
         description: Gives access to basic edit commands
         children:
             templecraft.join: true
+            templecraft.newgame: true
             templecraft.newtemple: true
             templecraft.edittemple: true
             templecraft.savetemple: true
@@ -43,7 +48,7 @@ permissions:
         default: op
     templecraft.join:
         description: Join an open game.
-        default: op
+        default: true
     templecraft.leave:
         description: Leave current game.
         default: true
@@ -55,6 +60,7 @@ permissions:
         default: true
     templecraft.gamelist:
         description: Lists all current games.
+        default: true
     templecraft.playerlist:
         description: Lists all players in a Temple.
         default: true
@@ -66,9 +72,6 @@ permissions:
         default: op
 
 # Temple Edit Commands
-    templecraft.checkupdates:
-        description: Allows Checking for Updates.
-        default: op
     templecraft.newtemple:
         description: Allows Creating New Temples.
         default: true
@@ -95,4 +98,20 @@ permissions:
         default: op
     templecraft.converttemples:
         description: Converts .tcf files to worlds and sets them up if possible.
+        default: op
+    templecraft.renametemple:
+        description: Rename a temple.
+        default: op
+    templecraft.setmaxplayers:
+        description: Set the maximum number of players allowed in a temple per game.
+        default: op
+# Other Commands
+    templecraft.checkupdates:
+        description: Allows Checking for Updates.
+        default: op
+    templecraft.placesigns:
+        description: Allows placing signs for TempleCraft purposes.
+        default: op
+    templecraft.findsigblocks:
+        description: Allows finding significant blocks in temples.
         default: op

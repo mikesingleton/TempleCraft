@@ -1,18 +1,20 @@
 package com.msingleton.templecraft;
 
-import java.net.URI;
-import java.net.HttpURLConnection;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.jar.JarFile;
 
 import org.bukkit.ChatColor;
@@ -20,6 +22,7 @@ import org.bukkit.GameMode;
 import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.CaveSpider;
 import org.bukkit.entity.Creature;
@@ -31,9 +34,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import com.msingleton.templecraft.games.Adventure;
 import com.msingleton.templecraft.games.Game;
+import com.msingleton.templecraft.games.Race;
 import com.msingleton.templecraft.games.Spleef;
-import com.msingleton.templecraft.games.Zombies;
-import com.sk89q.worldedit.bukkit.selections.Selection;
+import com.msingleton.templecraft.util.InventoryStash;
 
 public class TCUtils
 {                   
@@ -76,7 +79,7 @@ public class TCUtils
 		PlayerInventory inventory = player.getInventory();
 		ItemStack[] contents = inventory.getContents();
 		inventories.put(player.getName(), new InventoryStash(contents, inventory.getHelmet(), inventory.getChestplate(), 
-																inventory.getLeggings(), inventory.getBoots(), player.getHealth(), player.getFoodLevel(), player.getExperience(), player.getGameMode()));	
+																inventory.getLeggings(), inventory.getBoots(), player.getHealth(), player.getFoodLevel(), player.getTotalExperience(), player.getGameMode()));	
 	}
     
 	public static void restorePlayerInventory(Player player) {
@@ -87,7 +90,7 @@ public class TCUtils
 		}
 		player.setHealth(originalContents.getHealth());
 		player.setFoodLevel(originalContents.getFoodLevel());
-		player.setExperience(originalContents.getExperience());
+		player.setTotalExperience(originalContents.getExperience());
 		player.setGameMode(originalContents.getGameMode());
 	}
     
@@ -125,20 +128,14 @@ public class TCUtils
     /**
      * Creates a Configuration object from the config.yml file.
      */
-    public static File getConfig(String name)
-    {
+    public static File getConfig(String name){
         new File("plugins/TempleCraft").mkdir();
         File configFile = new File("plugins/TempleCraft/"+name+".yml");
         
-        try
-        {
+        try{
             if(!configFile.exists())
-            {
                 configFile.createNewFile();
-            }
-        }
-        catch(Exception e)
-        {
+        }catch(Exception e){
             System.out.println("[TempleCraft] ERROR: Config file could not be created.");
             return null;
         }
@@ -146,8 +143,7 @@ public class TCUtils
         return configFile;
     }
     
-    public static List<String> getEnabledCommands()
-    {
+    public static List<String> getEnabledCommands(){
         YamlConfiguration c = YamlConfiguration.loadConfiguration(TempleManager.config);
         
         String commands = c.getString("settings.enabledcommands", "/tc");
@@ -190,20 +186,29 @@ public class TCUtils
     /**
      * Grabs an int from the config-file.
      */
-    public static int getInt(String path, int def)
-    {
-    	YamlConfiguration c = YamlConfiguration.loadConfiguration(TempleManager.config);
+    public static int getInt(File configFile, String path, int def) {
+    	YamlConfiguration c = YamlConfiguration.loadConfiguration(configFile);
     	
         int result = c.getInt(path, def);
         c.set(path, result);
         
 		try {
-			c.save(TempleManager.config);
+			c.save(configFile);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
         return result;
     }
+    
+    private static void setInt(File configFile, String path, int value) {
+    	YamlConfiguration c = YamlConfiguration.loadConfiguration(configFile);
+        c.set(path, value);
+		try {
+			c.save(configFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
     
     /**
      * Grabs a string from the config-file.
@@ -272,7 +277,7 @@ public class TCUtils
 		for(String s : list){
 			Temple temple = getTempleByName(s);
 			if(temple == null)
-				c.set("Temples."+s,"");
+				c.getConfigurationSection("Temples").set(s, null);
 		}
 		try {
 			c.save(getConfig("temples"));
@@ -468,7 +473,74 @@ public class TCUtils
 		TempleManager.templeSet.remove(temple);
 	}
 	
+	public static void renameTemple(Temple temple, String arg) {
+		String folder = "plugins/TempleCraft/SavedTemples/";
+		File current = new File(folder+temple.templeName);
+		File result  = new File(folder+arg);
+		if(result.exists())
+			return;
+		current.renameTo(result);
+		File configFile = TCUtils.getConfig("temples");
+		YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+		if(config.isConfigurationSection("Temples."+temple.templeName)){
+			ConfigurationSection src = config.getConfigurationSection("Temples."+temple.templeName);
+			ConfigurationSection dst = config.createSection("Temples."+arg);
+			copyConfigurationSection(src,dst);
+			config.getConfigurationSection("Temples").set(temple.templeName, null);
+		}
+		temple.templeName = arg;
+        try {
+			config.save(configFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void copyConfigurationSection(ConfigurationSection src, ConfigurationSection dst){
+		for(String s : src.getKeys(false)){
+			if(src.isConfigurationSection(src.getCurrentPath()+s)){
+				dst.createSection(s);
+				copyConfigurationSection(src.getConfigurationSection(s),dst.getConfigurationSection(s));
+			} else {
+				dst.set(s, src.get(s));
+			}
+		}
+	}
+
+	public static void setTempleMaxPlayers(Temple temple, int value) {
+		TCUtils.setInt(getConfig("temples"),"Temples."+temple.templeName+".maxPlayersPerGame", value);
+		temple.maxPlayersPerGame = value;
+	}
+
+	public static void removePlayers(World world){
+		Set<Player> tempSet = new HashSet<Player>();
+		for(Player p: world.getPlayers())
+			tempSet.add(p);
+		World w;
+		for(Player p : tempSet){
+			TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+			if(tp == null){
+				w = getNonTempWorld();
+				if(w == null)
+					p.kickPlayer("Could not find a non temporary world to teleport you to.");
+				p.teleport(new Location(w,0,0,0));
+			} else {
+				TempleManager.playerLeave(p);
+			}
+		}
+	}
+	
+	private static World getNonTempWorld() {
+		World ntw = TempleManager.server.getWorld("world");
+		if(ntw == null)
+			for(World w : TempleManager.server.getWorlds())
+				if(!TCUtils.isTCWorld(w))
+					ntw = w;
+		return ntw;
+	}
+	
 	public static boolean deleteTempWorld(World w){
+		removePlayers(w);
 		if(w == null || !w.getPlayers().isEmpty())
 			return false;
 		w.setAutoSave(false);
@@ -512,6 +584,7 @@ public class TCUtils
 		String gameName;
 		String mode;
 		
+		TempleManager.tellPlayer(p, "Creating a new game...");
 		if(args.length < 2){
 			TempleManager.tellPlayer(p, "Incorrect number of arguements.");
 			return;
@@ -541,6 +614,11 @@ public class TCUtils
 			return;
 		}
 		
+		if(temple.maxPlayersPerGame < 1 && temple.maxPlayersPerGame != -1){
+			TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" is unjoinable");
+			return;
+		}
+		
 		if(newGame(gameName,temple,mode) != null)
 			TempleManager.tellPlayer(p, "New game \""+gameName+"\" created");
 		else if(TempleManager.constantWorldNames)
@@ -563,8 +641,8 @@ public class TCUtils
 		
 		if(mode.equals("adventure")){
 			game = new Adventure(name, temple, world);
-		} else if(mode.equals("zombies")){
-			game = new Zombies(name, temple, world);
+		} else if(mode.equals("race")){
+			game = new Race(name, temple, world);
 		} else if(mode.equals("spleef")){
 			game = new Spleef(name, temple, world);
 		} else {
@@ -654,6 +732,8 @@ public class TCUtils
      */
     public static void checkForUpdates(final Player p, boolean response)
     {
+    	return;
+    	/*
         String site = "http://forums.bukkit.org/threads/30111/";
         try
         {
@@ -695,7 +775,7 @@ public class TCUtils
         catch (Exception e)
         {
             e.printStackTrace();
-        }
+        }*/
     }
     
     public static void sendDeathMessage(Entity entity, Entity entity2){
@@ -714,12 +794,14 @@ public class TCUtils
 			//String key = p.getName() + "." + entity.getEntityId();
 			msg = killer + ChatColor.RED + " killed " + ChatColor.WHITE + killed;
     		
-			String s = TempleCraft.method.format(2.0);
-			String currencyName = s.substring(s.indexOf(" ") + 1);
+			if(TempleCraft.method != null){
+				String s = TempleCraft.method.format(2.0);
+				String currencyName = s.substring(s.indexOf(" ") + 1);
 			
-			if(game.mobGoldMap.containsKey(entity.getEntityId()) && entity2 instanceof Player)
-				msg += ChatColor.GOLD + " (+" + game.mobGoldMap.get(entity.getEntityId())/game.playerSet.size() + " "+currencyName+")";
-        	
+				if(game.mobGoldMap.containsKey(entity.getEntityId()) && entity2 instanceof Player)
+					msg += ChatColor.GOLD + " (+" + game.mobGoldMap.get(entity.getEntityId())/game.playerSet.size() + " "+currencyName+")";
+			}
+			
 			game.tellPlayer(p, msg);
 		}
     }
@@ -736,8 +818,8 @@ public class TCUtils
     	if(entity instanceof Slime)
     		return "Slime";
 		return "";
-	}
-
+    }
+    
 	public static void copyFromJarToDisk(String entry, File folder){
     	try{
 			JarFile jar = new JarFile(TempleManager.plugin.getPluginFile());
@@ -754,15 +836,6 @@ public class TCUtils
     		e.printStackTrace();
     	}
 	}
-	
-	public static Selection getSelection(Player player){
-		Selection sel = TempleManager.worldEdit.getSelection(player);
-
-	    if (sel == null)
-	      TempleManager.tellPlayer(player, "Select a region with WorldEdit first.");
-	    
-		return sel;
-	}
 
 	public static boolean isTCWorld(World world) {
 		String name = world.getName();
@@ -775,5 +848,78 @@ public class TCUtils
 		if(world.getName().startsWith("TCEditWorld_") || TempleManager.templeEditMap.containsValue(world))
 			return true;
 		return false;
+	}
+
+	public static void getSignificantBlocks(Player p, int radius) {
+		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+		Temple temple = tp.currentTemple;
+		Location ploc = p.getLocation();
+		int x1 = ploc.getBlockX()-radius;
+		int x2 = ploc.getBlockX()+radius;
+		int y1 = ploc.getBlockY()-radius;
+		int y2 = ploc.getBlockY()+radius;
+		int z1 = ploc.getBlockZ()-radius;
+		int z2 = ploc.getBlockZ()+radius;
+		if(y1<=0)
+			y1 = 1;
+		if(y2>p.getWorld().getMaxHeight())
+			y2 = p.getWorld().getMaxHeight();
+		
+		TempleManager.tellPlayer(p, "Finding Significant Blocks from ("+x1+","+y1+","+z1+") to ("+x2+","+y2+","+z2+")...");
+				
+		Map<Integer, Integer> foundBlocks = new HashMap<Integer, Integer>();
+		
+		for(int i = x1;i<=x2;i++)
+			for(int j = y1;j<=y2;j++){
+				for(int k = z1;k<=z2;k++){
+					int id = p.getWorld().getBlockTypeIdAt(i, j, k);
+					if(id == Temple.goldBlock || id == Temple.diamondBlock || id == Temple.ironBlock || id == 63 || id == 68 || (id == Temple.mobSpawner && j>5)){
+		        		Location loc = new Location(p.getWorld(),i,j,k);
+		        		if(!temple.coordLocSet.contains(loc)){
+		        			temple.coordLocSet.add(loc);
+		        			if(foundBlocks.containsKey(id))
+		        				foundBlocks.put(id, foundBlocks.remove(id)+1);
+		        			else
+		        				foundBlocks.put(id, 1);
+		        		}
+		        	}
+				}
+			}
+		
+		// Print Results
+		for(Integer id : foundBlocks.keySet())
+			TempleManager.tellPlayer(p, "Found "+foundBlocks.get(id)+" "+getMaterialName(Material.getMaterial(id).name()));
+		
+		TempleManager.tellPlayer(p, "Done.");
+	}
+	
+	public static String getMaterialName(String s){
+		StringBuilder sb = new StringBuilder();
+		String[] words = s.split("_");
+		for(int i = 0; i<words.length;i++){
+			sb.append(Character.toUpperCase(words[i].charAt(0))+words[i].toLowerCase().substring(1));
+			if((i+1)<words.length)
+				sb.append(" ");
+		}
+		return sb.toString();
+	}
+
+	public static Map<String,Integer> sortMapByValues(Map<String, Integer> standings) {
+		List<String> keyList = new ArrayList<String>();
+	    List<Integer> valueList = new ArrayList<Integer>();
+	    for(String s : standings.keySet()){
+			keyList.add(s);
+			valueList.add(standings.get(s));
+		}
+	    Set<Integer> sortedSet = new TreeSet<Integer>(valueList);
+	    
+	    Object[] sortedArray = sortedSet.toArray();
+	    int size = sortedArray.length;
+
+	    Map<String, Integer> result = new LinkedHashMap<String, Integer>();
+	    for (int i = 0; i < size; i++)
+	      result.put(keyList.get(valueList.indexOf(sortedArray[i])), (Integer) sortedArray[i]);
+
+		return result;
 	}
 }

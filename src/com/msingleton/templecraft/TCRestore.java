@@ -19,6 +19,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.ContainerBlock;
@@ -28,6 +29,8 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Slime;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
+
+import com.msingleton.templecraft.util.EntityPosition;
 
 public class TCRestore {
 	//Blocks
@@ -165,6 +168,7 @@ public class TCRestore {
 	        ObjectOutputStream oos = new ObjectOutputStream(fos);
 	        oos.writeObject(significantLocs);
 	        oos.close();
+	        fos.close();
 	        File file = new File("plugins/TempleCraft/SavedTemples/"+temple.templeName+"/"+"TCLocs"+ TempleCraft.fileExtention);
 	        if(file.exists())
 	        	file.delete();
@@ -190,6 +194,7 @@ public class TCRestore {
             ObjectInputStream ois = new ObjectInputStream(fis);
             significantEPs = (HashSet<EntityPosition>) ois.readObject();
             ois.close();
+            fis.close();
         }
         catch (Exception e)
         {
@@ -304,7 +309,7 @@ public class TCRestore {
 				if(s.length > 2)
 					contentsFromString((ContainerBlock)b.getState(), s[2]);
         	// If it's diamond,gold or iron or bedrock, add it to coordBlockSet
-        	} else if(b.getTypeId() == Temple.goldBlock || b.getTypeId() == Temple.diamondBlock || b.getTypeId() == Temple.ironBlock || b.getTypeId() == Temple.mobSpawner){
+        	} else if(b.getTypeId() == Temple.goldBlock || b.getTypeId() == Temple.diamondBlock || b.getTypeId() == Temple.ironBlock || b.getType() == Material.WALL_SIGN || b.getType() == Material.SIGN_POST || b.getTypeId() == Temple.mobSpawner){
         		temple.coordLocSet.add(loc);
         	}
         }

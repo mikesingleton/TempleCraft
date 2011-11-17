@@ -1,4 +1,4 @@
-package com.msingleton.templecraft;
+package com.msingleton.templecraft.listeners;
 
 import java.util.HashMap;
 
@@ -17,9 +17,12 @@ import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTargetEvent.TargetReason;
 
+import com.msingleton.templecraft.TCUtils;
+import com.msingleton.templecraft.TempleCraft;
+import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.games.Game;
 import com.msingleton.templecraft.games.Adventure;
-import com.msingleton.templecraft.games.Zombies;
+import com.msingleton.templecraft.games.Arena;
 
 
 /**
@@ -163,15 +166,7 @@ public class TCMonsterListener extends EntityListener
      */
     public void onCreatureSpawn(CreatureSpawnEvent event)
     {    	
-    	if (!(event.getEntity() instanceof LivingEntity))
-            return;
-    	
     	Location loc = event.getLocation();
-    	
-    	if(TCUtils.isTCEditWorld(loc.getWorld())){
-    		event.setCancelled(true);
-    		return;
-    	}
     	
     	// When in TCWorld, Only Spawn Custom Monsters
     	LivingEntity e = (LivingEntity) event.getEntity();
@@ -179,8 +174,8 @@ public class TCMonsterListener extends EntityListener
     		if(event.getSpawnReason().equals(SpawnReason.CUSTOM)){
 	    		Game game = TCUtils.getGameByWorld(loc.getWorld());
 		    	game.monsterSet.add(e);
-	    		if(game instanceof Zombies)
-	    			e.setHealth((int) ((Zombies)game).getZombieHealth());
+	    		if(game instanceof Arena)
+	    			e.setHealth((int) ((Arena)game).getZombieHealth());
     		} else {
     			event.setCancelled(true);
     		}
