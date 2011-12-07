@@ -10,6 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.CommandExecutor;
 
 import com.msingleton.templecraft.games.Game;
+import com.msingleton.templecraft.util.Translation;
 
 public class TCCommands implements CommandExecutor
 {
@@ -66,7 +67,7 @@ public class TCCommands implements CommandExecutor
     				return true;
     			}
     		}
-    		TempleManager.tellPlayer(p, "All temples are currently running or disabled! Please try again later.");
+    		TempleManager.tellPlayer(p, Translation.tr("joinFail"));
     		return true;
     	}
     	
@@ -81,7 +82,7 @@ public class TCCommands implements CommandExecutor
     		Temple temple = tp.currentTemple;
     		
     		if(temple == null || !TCUtils.isTCEditWorld(p.getWorld())){
-    			TempleManager.tellPlayer(p, "You are not editing a temple.");
+    			TempleManager.tellPlayer(p, Translation.tr("saveFail"));
     			return true;
     		}
     		
@@ -96,7 +97,7 @@ public class TCCommands implements CommandExecutor
         if ((cmd.equals("playerlist") || cmd.equals("plist")) && TCPermissionHandler.hasPermission(p, "templecraft.playerlist"))
         {
         	if(TempleManager.playerSet.contains(p))
-        		tp.currentGame.playerList(p,true);
+        		tp.currentGame.playerList(p);
         	else
         		TempleManager.playerList(p);
             return true;
@@ -105,16 +106,16 @@ public class TCCommands implements CommandExecutor
         if ((cmd.equals("gamelist") || cmd.equals("glist")) && TCPermissionHandler.hasPermission(p, "templecraft.playerlist"))
         {
         	if(TempleManager.gameSet.isEmpty()){
-        		TempleManager.tellPlayer(p,"No games are available.");
+        		TempleManager.tellPlayer(p,Translation.tr("noGamesAvailable"));
         		return true;
         	}
         	p.sendMessage(ChatColor.GREEN+"Game List:");
         	for(Game game : TempleManager.gameSet)
         		if(game != null){
         			if(game.isRunning)
-        				p.sendMessage(game.gameName+": "+ChatColor.RED+"In Progress");
+        				p.sendMessage(Translation.tr("gameInProgress",game.gameName));
         			else
-        				p.sendMessage(game.gameName+": "+ChatColor.GREEN+"In Lobby");
+        				p.sendMessage(Translation.tr("gameInLobby",game.gameName));
         		}
             return true;
         }
@@ -122,10 +123,10 @@ public class TCCommands implements CommandExecutor
         if ((cmd.equals("templelist") || cmd.equals("tlist")) && TCPermissionHandler.hasPermission(p, "templecraft.templelist"))
         {
         	if(TempleManager.templeSet.isEmpty()){
-        		TempleManager.tellPlayer(p,"No Temples are available.");
+        		TempleManager.tellPlayer(p,Translation.tr("noTemplesAvailable"));
         		return true;
         	}
-        	p.sendMessage(ChatColor.GREEN+"Temple List:");
+        	p.sendMessage(Translation.tr("templeList"));
         	ArrayList<String> list = new ArrayList<String>();
         	
         	Iterator<Temple> it = TempleManager.templeSet.iterator();
@@ -133,11 +134,10 @@ public class TCCommands implements CommandExecutor
         		Temple temple = it.next();
         		StringBuilder line = new StringBuilder();
         		if(temple != null){
-        			line.append(ChatColor.WHITE+temple.templeName+": ");
         			if(temple.isSetup){
-        				line.append(ChatColor.DARK_GREEN+"Setup");
+        				line.append(Translation.tr("templeListSetup",temple.templeName));
         			} else {
-        				line.append(ChatColor.DARK_RED+"Not Setup");
+        				line.append(Translation.tr("templeListNotSetup",temple.templeName));
         			}
         			int startLeng = line.length();
         			while(line.length()<55-startLeng)
@@ -146,11 +146,10 @@ public class TCCommands implements CommandExecutor
         		if(it.hasNext()){
         			temple = it.next();
         			if(temple != null){
-            			line.append(ChatColor.WHITE+temple.templeName+": ");
-            			if(temple.isSetup){
-            				line.append(ChatColor.DARK_GREEN+"Setup");
+        				if(temple.isSetup){
+            				line.append(Translation.tr("templeSetup",temple.templeName));
             			} else {
-            				line.append(ChatColor.DARK_RED+"Not Setup");
+            				line.append(Translation.tr("templeNotSetup",temple.templeName));
             			}
             		}
         		}
@@ -171,14 +170,14 @@ public class TCCommands implements CommandExecutor
         		TempleManager.notReadyList(p);
             return true;
         }
-        
+        /*
         if (cmd.equals("enable") && TCPermissionHandler.hasPermission(p, "templecraft.enable"))
         {            
             // Set the boolean
             TempleManager.isEnabled = Boolean.valueOf(!TempleManager.isEnabled);
             TempleManager.tellPlayer(p, "Enabled: " + TempleManager.isEnabled);
             return true;
-        }
+        }*/
         
         if (cmd.equals("checkupdates") && TCPermissionHandler.hasPermission(p, "templecraft.checkupdates"))
         {            
@@ -189,11 +188,11 @@ public class TCCommands implements CommandExecutor
         if (cmd.equals("converttemples") && TCPermissionHandler.hasPermission(p, "templecraft.converttemples"))
         {
         	for(Temple temple : TempleManager.templeSet){
-        		TempleManager.tellPlayer(p, "Converting "+temple.templeName+"...");
+        		TempleManager.tellPlayer(p, Translation.tr("convertingTemple", temple.templeName));
         		TCUtils.convertTemple(p, temple);
         	}
 			
-			TempleManager.tellPlayer(p, "Temples Converted");
+			TempleManager.tellPlayer(p, Translation.tr("convertingComplete"));
 			return true;
         }
         
@@ -209,7 +208,7 @@ public class TCCommands implements CommandExecutor
     	
         if (cmd.equals("new") && TCPermissionHandler.hasPermission(p, "templecraft.newtemple"))
         {
-        	TempleManager.tellPlayer(p, "Attempting to create new Temple \""+args[0]+"\"...");
+        	TempleManager.tellPlayer(p, Translation.tr("newTemple", arg));
         	if(args.length == 2)
         		TCUtils.newTemple(p, arg, null, true);
         	else if(args.length == 3)
@@ -228,12 +227,12 @@ public class TCCommands implements CommandExecutor
         	Temple temple = TCUtils.getTempleByName(arg);
     		
     		if(temple == null){
-    			TempleManager.tellPlayer(p, "Temple \""+arg+"\" does not exist");
+    			TempleManager.tellPlayer(p, Translation.tr("templeDNE", arg));
     			return true;
     		}
     		
         	TCUtils.removeTemple(temple);
-        	TempleManager.tellPlayer(p, "Temple \""+arg+"\" deleted");
+        	TempleManager.tellPlayer(p, Translation.tr("templeDeleted", arg));
             return true;
         }
         
@@ -245,14 +244,14 @@ public class TCCommands implements CommandExecutor
         		temple = tp.currentTemple;
 	    		result = arg;
 	    		if(temple == null){
-	    			TempleManager.tellPlayer(p, "You must be in a temple to use this command.");
+	    			TempleManager.tellPlayer(p, Translation.tr("mustBeEditing"));
 	    			return true;
 	    		}
         	} else if(args.length == 3){
 	        	temple = TCUtils.getTempleByName(arg);
 	    		result = args[2];
 	    		if(temple == null){
-	    			TempleManager.tellPlayer(p, "Temple \""+arg+"\" does not exist");
+	    			TempleManager.tellPlayer(p, Translation.tr("templeDNE", arg));
 	    			return true;
 	    		}
         	} else {
@@ -262,10 +261,10 @@ public class TCCommands implements CommandExecutor
         	if(newtemple == null){
     			TCUtils.renameTemple(temple, arg);
     		} else {
-    			TempleManager.tellPlayer(p, "Temple \""+result+"\" already exists");
+    			TempleManager.tellPlayer(p, Translation.tr("templeAE", result));
     			return true;
     		}
-        	TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" renamed to \""+result+"\"");
+        	TempleManager.tellPlayer(p, Translation.tr("templeRenamed", temple.templeName, result));
             return true;
         }
         
@@ -283,15 +282,15 @@ public class TCCommands implements CommandExecutor
         		return true;
         	}
         	if(temple == null){
-    			TempleManager.tellPlayer(p, "Temple \""+arg+"\" does not exist");
+    			TempleManager.tellPlayer(p, Translation.tr("templeDNE", arg));
     			return true;
     		}
         	try{
     			int value = Integer.parseInt(number);
     			TCUtils.setTempleMaxPlayers(temple, value);
-            	TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" maxPlayers set to "+value);
+            	TempleManager.tellPlayer(p, Translation.tr("templeMaxPlayersSet",temple.templeName, value));
     		}catch(Exception e){
-    			TempleManager.tellPlayer(p, "setTempleMaxPlayers got invalid variable for expected integer");
+    			TempleManager.tellPlayer(p, Translation.tr("invalidInteger"));
     		}
             return true;
         }
@@ -299,7 +298,7 @@ public class TCCommands implements CommandExecutor
         if (cmd.equals("worldtotemple") && TCPermissionHandler.hasPermission(p, "templecraft.worldtotemple"))
         {
         	if(TCUtils.getTempleByName(arg) != null){
-        		TempleManager.tellPlayer(p, "Temple \""+arg+"\" already exists.");
+        		TempleManager.tellPlayer(p, Translation.tr("templeAE"));
         		return true;
         	}
         	
@@ -311,7 +310,7 @@ public class TCCommands implements CommandExecutor
         	Temple temple = TCUtils.getTempleByName(arg);
 			TCRestore.saveTemple(p.getWorld(), temple);
 			
-			TempleManager.tellPlayer(p, "World Converted to Temple \""+arg+"\"");
+			TempleManager.tellPlayer(p, Translation.tr("worldConverted",arg));
 			return true;
         }
         
@@ -320,11 +319,11 @@ public class TCCommands implements CommandExecutor
         	Temple temple = TCUtils.getTempleByName(arg);
     		
     		if(temple == null){
-    			TempleManager.tellPlayer(p, "Temple \""+arg+"\" does not exist");
+    			TempleManager.tellPlayer(p, Translation.tr("templeDNE", arg));
     			return true;
     		}
         	
-    		TempleManager.tellPlayer(p, "Preparing "+temple.templeName+"...");
+    		TempleManager.tellPlayer(p, Translation.tr("preparingTemple", temple.templeName));
     		TCUtils.editTemple(p, temple);
             return true;
         }
@@ -334,12 +333,12 @@ public class TCCommands implements CommandExecutor
         	Temple temple = tp.currentTemple;
     		
     		if(temple == null || !temple.editorSet.contains(p)){
-    			TempleManager.tellPlayer(p, "You need to be editing a temple to use this command.");
+    			TempleManager.tellPlayer(p, Translation.tr("mustBeEditing"));
     			return true;
     		}
         	
     		if(!temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p, "templecraft.editall")){
-    			TempleManager.tellPlayer(p, "Only the owner of the temple can use this command.");
+    			TempleManager.tellPlayer(p, Translation.tr("mustBeOwner"));
     			return true;
     		}
     		
@@ -352,12 +351,12 @@ public class TCCommands implements CommandExecutor
     		}
     		
     		if(playerName == null){
-    			TempleManager.tellPlayer(p, "Player not found.");
+    			TempleManager.tellPlayer(p, Translation.tr("playerNotFound"));
     		} else {
     			if(temple.addEditor(playerName))
-    				TempleManager.tellPlayer(p, "Added \""+playerName+"\" to \""+temple.templeName+"\".");
+    				TempleManager.tellPlayer(p, Translation.tr("playerAdded", playerName, temple.templeName));
     			else
-    				TempleManager.tellPlayer(p, "\""+playerName+"\" already has access to this temple.");
+    				TempleManager.tellPlayer(p, Translation.tr("playerAlreadyAdded", playerName));
     		}
     		return true;
         }
@@ -367,12 +366,12 @@ public class TCCommands implements CommandExecutor
         	Temple temple = tp.currentTemple;
     		
     		if(temple == null || !temple.editorSet.contains(p)){
-    			TempleManager.tellPlayer(p, "You need to be editing a temple to use this command.");
+    			TempleManager.tellPlayer(p, Translation.tr("mustBeEditing"));
     			return true;
     		}
         	
     		if(!temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p, "templecraft.editall")){
-    			TempleManager.tellPlayer(p, "Only the owner of the temple can use this command.");
+    			TempleManager.tellPlayer(p, Translation.tr("mustBeOwner"));
     			return true;
     		}
     		
@@ -385,12 +384,12 @@ public class TCCommands implements CommandExecutor
     		}
     		
     		if(playerName == null){
-    			TempleManager.tellPlayer(p, "Player not found.");
+    			TempleManager.tellPlayer(p, Translation.tr("playerNotFound"));
     		} else {
     			if(temple.removeEditor(playerName))
-    				TempleManager.tellPlayer(p, "Removed \""+playerName+"\" from \""+temple.templeName+"\".");
+    				TempleManager.tellPlayer(p, Translation.tr("playerRemoved", playerName, temple.templeName));
     			else
-    				TempleManager.tellPlayer(p, "\""+playerName+"\" does not have access \""+temple.templeName+"\".");
+    				TempleManager.tellPlayer(p, Translation.tr("playerAlreadyRemoved", playerName, temple.templeName));
     		}
             return true;
         }
@@ -402,14 +401,14 @@ public class TCCommands implements CommandExecutor
         		Temple temple = tp.currentTemple;
         		
         		if(temple == null){
-        			TempleManager.tellPlayer(p, "You must be in a temple to use this command");
+        			TempleManager.tellPlayer(p, Translation.tr("mustBeEditing"));
         			return true;
         		}
         		
         		TCUtils.getSignificantBlocks(p, radius);
         		return true;
         	} catch(Exception e){
-        		TempleManager.tellPlayer(p, "Invalid argument for expected integer.");
+        		TempleManager.tellPlayer(p, Translation.tr("invalidInteger"));
         		return true;
         	}
         }
@@ -422,7 +421,7 @@ public class TCCommands implements CommandExecutor
         Game game = TCUtils.getGameByName(gamename);
         
         if(game == null){
-        	TempleManager.tellPlayer(p, "There is no game with name " + gamename);
+        	TempleManager.tellPlayer(p, Translation.tr("gameDNE", gamename));
         	return true;
         }
         

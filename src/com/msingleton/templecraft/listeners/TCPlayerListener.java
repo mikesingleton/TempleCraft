@@ -14,7 +14,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
-
 import com.msingleton.templecraft.TCPermissionHandler;
 import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.Temple;
@@ -23,6 +22,7 @@ import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.TemplePlayer;
 import com.msingleton.templecraft.games.*;
 import com.msingleton.templecraft.scoreboards.ScoreBoard;
+import com.msingleton.templecraft.util.Translation;
 
 public class TCPlayerListener  extends PlayerListener{
 
@@ -114,13 +114,13 @@ public class TCPlayerListener  extends PlayerListener{
         	return;
         
         // Start Block
-        if (b.getTypeId() == 42 && game.lobbyLocSet.contains(b.getLocation())){
-        	game.hitStartBlock(p);
+        if (b.getTypeId() == 42 && game.lobbyLocMap.containsKey(b.getLocation())){
+        	game.hitStartBlock(p,game.lobbyLocMap.get(b.getLocation()));
         // End Block
-        } else if (b.getTypeId() == 42 && game.rewardLocMap.containsKey(b.getLocation())){
+        } else if (!game.deadSet.contains(p) && b.getTypeId() == 42 && game.rewardLocMap.containsKey(b.getLocation())){
             game.hitRewardBlock(p,game.rewardLocMap.remove(b.getLocation()));
             return;
-        } else if (b.getTypeId() == 41 && game.endLocSet.contains(b.getLocation())){
+        } else if (!game.deadSet.contains(p) && b.getTypeId() == 41 && game.endLocSet.contains(b.getLocation())){
             game.hitEndBlock(p);
             return;
         }
@@ -158,7 +158,7 @@ public class TCPlayerListener  extends PlayerListener{
 						for(Sign sign : signs){
 							if(sign.getLine(0).equals("[TCS]") || sign.getLine(0).equals("[TempleCraftS]") || sign.getLine(3).equals("sensor")){
 								tp.sensedSign = sign;
-								TempleManager.tellPlayer(p, "You found the enterance to a temple!! Stand still to Enter!");
+								TempleManager.tellPlayer(p, Translation.tr("playerListener.entranceFound"));
 								tp.startEnterTimer(p);
 							}
 						}
@@ -199,17 +199,17 @@ public class TCPlayerListener  extends PlayerListener{
     	Temple temple = TCUtils.getTempleByName(Line2.toLowerCase());
     	
     	if(temple == null){
-    		TempleManager.tellPlayer(p, "Temple \""+Line2+"\" does not exist");
-    		return;
-    	}
-    	
-    	if(!temple.isSetup){
-			TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" is not setup");
+			TempleManager.tellPlayer(p, Translation.tr("templeDNE", Line2));
 			return;
 		}
-    	
-    	if(temple.maxPlayersPerGame < 1 && temple.maxPlayersPerGame != -1){
-			TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" is unjoinable");
+		
+		if(!temple.isSetup){
+			TempleManager.tellPlayer(p, Translation.tr("templeNotSetup", temple.templeName));
+			return;
+		}
+		
+		if(temple.maxPlayersPerGame < 1 && temple.maxPlayersPerGame != -1){
+			TempleManager.tellPlayer(p, Translation.tr("templeFull", temple.templeName));
 			return;
 		}
     	
@@ -220,9 +220,9 @@ public class TCPlayerListener  extends PlayerListener{
     		mode = Line3.toLowerCase();
     	
     	if(!TempleManager.modes.contains(mode)){
-    		TempleManager.tellPlayer(p, "Mode \""+Line3+"\" does not exist");
-    		return;
-    	}
+			TempleManager.tellPlayer(p, Translation.tr("modeDNE", mode));
+			return;
+		}
     	
     	for(Game game : TempleManager.gameSet){
     		if(!game.isRunning && game.maxPlayers != game.playerSet.size() && game.gameName.contains(temple.templeName) && game.gameName.contains(mode.substring(0,3))){
@@ -232,9 +232,9 @@ public class TCPlayerListener  extends PlayerListener{
     	}
     	
     	if(!TempleManager.gameSet.isEmpty())
-    		TempleManager.tellPlayer(p, "All available games currently full or in progress.");
+    		TempleManager.tellPlayer(p, Translation.tr("game.allInProgress"));
     	
-    	TempleManager.tellPlayer(p, "Creating new game...");
+    	TempleManager.tellPlayer(p, Translation.tr("newGame"));
     	String gameName = TCUtils.getUniqueGameName(temple.templeName, mode);
     	Game game = TCUtils.newGame(gameName, temple, mode);
     	if(game != null)

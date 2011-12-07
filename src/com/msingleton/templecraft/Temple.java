@@ -17,6 +17,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 
+import com.msingleton.templecraft.util.Translation;
+
 public class Temple {
 	protected File config;
     
@@ -120,19 +122,19 @@ public class Temple {
 		return result;
 	}
 
-	protected void saveTemple(World w, Player p){		
-	    TempleManager.tellPlayer(p, "Saving World...");
+	protected void saveTemple(World w, Player p){
+	    TempleManager.tellPlayer(p, Translation.tr("templeSave"));
 		TCRestore.saveTemple(w, this);
 		
 		isSetup = trySetup(w);
 		if(TCUtils.getBoolean(config,"Temples."+templeName+".isSetup", isSetup) != isSetup){
 			TCUtils.setBoolean(config,"Temples."+templeName+".isSetup", isSetup);
 			if(isSetup)
-				TempleManager.tellPlayer(p, templeName+" is "+ChatColor.DARK_GREEN+"now Setup");
+				TempleManager.tellPlayer(p, Translation.tr("templeNowSetup", templeName));
 			else
-				TempleManager.tellPlayer(p, templeName+" is "+ChatColor.DARK_RED+"no longer Setup");
+				TempleManager.tellPlayer(p, Translation.tr("templeNoLongerSetup", templeName));
 		} else if(!isSetup){
-			TempleManager.tellPlayer(p, templeName+" is "+ChatColor.DARK_RED+"not Setup yet");
+			TempleManager.tellPlayer(p, Translation.tr("templeNotSetup", templeName));
 		}
 		
 		// ChunkGenerator
@@ -145,7 +147,7 @@ public class Temple {
 			}
 		}
 		
-		TempleManager.tellPlayer(p, "Temple Saved");
+		TempleManager.tellPlayer(p, Translation.tr("templeSaved"));
 	}
 	
 	private void loadEditors() {

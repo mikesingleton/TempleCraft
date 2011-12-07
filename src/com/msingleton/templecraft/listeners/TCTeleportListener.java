@@ -10,6 +10,7 @@ import com.msingleton.templecraft.Temple;
 import com.msingleton.templecraft.TempleCraft;
 import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.TemplePlayer;
+import com.msingleton.templecraft.util.Translation;
 
 /**
  * This listener prevents players from warping out of the arena, if
@@ -47,7 +48,7 @@ public class TCTeleportListener extends PlayerListener
             return;
         }
         
-        TempleManager.tellPlayer(p, "Can't leave world! To leave, type /tc leave");
+        TempleManager.tellPlayer(p, Translation.tr("teleportListener.deny"));
         event.setCancelled(true);
     }
 }

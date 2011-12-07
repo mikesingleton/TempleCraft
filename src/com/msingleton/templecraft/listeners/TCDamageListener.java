@@ -13,7 +13,6 @@ import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.TempleCraft;
 import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.TemplePlayer;
-import com.msingleton.templecraft.games.Adventure;
 import com.msingleton.templecraft.games.Game;
 import com.msingleton.templecraft.games.Arena;
 
@@ -50,13 +49,15 @@ public class TCDamageListener extends EntityListener
     	if (event.getEntity() instanceof Player){
     		Player p = (Player)event.getEntity();
     		Game game = TempleManager.templePlayerMap.get(p).currentGame;
-    		if(game != null && game.deadSet.contains(p)){
+    		// If the player is dead or the game isn't running, the player can't take damage
+    		if(game != null && (game.deadSet.contains(p) || !game.isRunning)){
     			p.setFireTicks(0);
+    			event.setCancelled(true);
     			return;
     		}
  
     		if(game instanceof Arena){
-    			// Increases the damage zombies do over time for zombies mode
+    			// Increases the damage mobs do over time for Arena mode
     			event.setDamage((int) (event.getDamage()*((Arena)game).getDamageMultiplyer()));
     		}
     	}
@@ -69,17 +70,17 @@ public class TCDamageListener extends EntityListener
 
 	        int id = entity2.getEntityId();
 	        
-	        if(entity instanceof Projectile){
+	        if(entity instanceof Projectile)
 	        	entity = ((Projectile) entity).getShooter();
-	        }
 	        
-	        //No Friendly Fire in Zombies
 	        if(entity instanceof Player && entity2 instanceof Player){
-	        	Player p = (Player)event.getEntity();
-	        	Game game = TempleManager.templePlayerMap.get(p).currentGame;
-		        if(game instanceof Arena){
-	    			event.setCancelled(true);
-	    		}
+	        	TemplePlayer tp1 = TempleManager.templePlayerMap.get((Player)entity);
+	        	TemplePlayer tp2 = TempleManager.templePlayerMap.get((Player)entity2);
+	        	// Players on the same team can't hurt each other
+	        	if(tp1.team != -1 && tp1.team == tp2.team){
+	        		event.setCancelled(true);
+	        		return;
+	        	}
 	        }
 	        
 	        if(entity2 instanceof LivingEntity && ((LivingEntity)entity2).getHealth() > 0){
@@ -102,55 +103,35 @@ public class TCDamageListener extends EntityListener
     	if (!TCUtils.isTCWorld(event.getEntity().getWorld()))
             return;
     	
-        // If player, call player death and such.
-        if (event.getEntity() instanceof Player)
-        {        
-            Player p = (Player) event.getEntity();
-            TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-            
-            if (!TempleManager.playerSet.contains(p))
-                return;
-            
-            event.getDrops().clear();
-            Game game = tp.currentGame;
-            game.playerDeath(p);
-        }
-        // If monster, remove from monster set
-        else if (event.getEntity() instanceof LivingEntity)
+    	// If a living entity dies in a TempleWorld, clear drops and such
+    	
+        if (event.getEntity() instanceof LivingEntity)
         {
             LivingEntity e = (LivingEntity) event.getEntity();
-     
-            Game game = TCUtils.getGame(e);
             
-            if(game == null)
-        		return;
-            
-            if (!game.monsterSet.contains(e))
-                return;
-          
-            if(game instanceof Adventure){
-	            Entity lastDamager = game.lastDamager.remove(e.getEntityId());
-	            TCUtils.sendDeathMessage(e, lastDamager);
-	           	
-	           	if(lastDamager instanceof Player){
-		           	TempleManager.templePlayerMap.get(lastDamager).roundMobsKilled++;
-	           		if(game.mobGoldMap != null && game.mobGoldMap.containsKey(e.getEntityId())){
-		           		for(Player p : game.playerSet){
-		           			int gold = game.mobGoldMap.get(e.getEntityId())/game.playerSet.size();
-		           			TempleManager.templePlayerMap.get(p).roundGold += gold;
-		           			if(TempleCraft.method != null)
-		           				TempleCraft.method.getAccount(p.getName()).add(gold);
-		           		}
-		           	}
-	           	}
-            }
-
             event.getDrops().clear();
-            game.monsterSet.remove(e);
-            // Starts a new round if all the round's mobs are killed for Arena mode
-            if(game instanceof Arena)
-            	if(game.monsterSet.isEmpty())
-            		((Arena)game).nextRound();
+            
+            Game game;
+            Entity lastDamager;
+            if (e instanceof Player)
+            {        
+                Player p = (Player) e;
+                
+                if (!TempleManager.playerSet.contains(p))
+                    return;
+                
+                TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+                game = tp.currentGame;
+                
+                lastDamager = game.lastDamager.remove(event.getEntity().getEntityId());
+            } else {
+            	// If a monster died
+	            game = TCUtils.getGame(e);
+	            lastDamager = game.lastDamager.remove(e.getEntityId());
+            }
+            
+            if(game != null && lastDamager != null)
+            	game.onEntityKilledByEntity(e,lastDamager);
         }
     }
 }

@@ -3,71 +3,50 @@ package com.msingleton.templecraft.games;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import com.msingleton.templecraft.TCMobHandler;
+import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.Temple;
 import com.msingleton.templecraft.TempleCraft;
 import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.TemplePlayer;
 import com.msingleton.templecraft.util.MobArenaClasses;
+import com.msingleton.templecraft.util.Translation;
 import com.nijikokun.register.payment.Method.MethodAccount;
 
 public class Adventure extends Game{
 	public Adventure(String name, Temple temple, World world) {
 		super(name, temple, world);
+		world.setPVP(false);
 	}
 	
 	public void endGame(){
-		TempleManager.tellAll("Adventure game finished in: \""+temple.templeName+"\"");
 		super.endGame();
-	}
-	
-	public Location getPlayerSpawnLoc() {
-		Random r = new Random();
-		Location loc = null;
-		for(Location l : startLocSet){
-			if(!l.getWorld().equals(world))
-				l.setWorld(world);
-			
-			if(loc == null)
-				loc = l;
-			else if(r.nextInt(startLocSet.size()) == 0)
-				loc = l;
-		}
-		return loc;
 	}
 	
 	public void playerDeath(Player p)
 	{
-		String msg;
 		if(TempleCraft.method != null){
 			String s = TempleCraft.method.format(2.0);
 			String currencyName = s.substring(s.indexOf(" ") + 1);
 			MethodAccount balance = TempleCraft.method.getAccount(p.getName());
 			if(balance.hasEnough(rejoinCost)){
 				if(TempleCraft.method != null && rejoinCost > 0){
-					msg = "To continue playing will cost you "+ChatColor.GOLD+rejoinCost+" "+currencyName+".";
-					TempleManager.tellPlayer(p, msg);
-					msg = "Or type \"/tc leave\" and restart from the beginning!";
-					TempleManager.tellPlayer(p, msg);
-				} else {
-					//msg = "Rejoin your friends! :O";
-					//TempleManager.tellPlayer(p, msg);
+					TempleManager.tellPlayer(p, Translation.tr("adventure.rejoin1", rejoinCost, currencyName));
+					TempleManager.tellPlayer(p, Translation.tr("adventure.rejoin2"));
 				}
 			} else {
-				msg = "You do not have enough "+currencyName+" to rejoin.";
-				TempleManager.tellPlayer(p, msg);
-				msg = "Please type \"/tc leave\" to leave the temple.";
-				TempleManager.tellPlayer(p, msg);
+				TempleManager.tellPlayer(p, Translation.tr("adventure.rejoinFail1", currencyName));
+				TempleManager.tellPlayer(p, Translation.tr("adventure.rejoinFail2"));
 			}
 		}
 		p.teleport(lobbyLoc);
@@ -90,6 +69,7 @@ public class Adventure extends Game{
 	}
 	
 	public void hitEndBlock(Player p) {
+		
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		if (playerSet.contains(p))
         {            	
@@ -97,7 +77,7 @@ public class Adventure extends Game{
         	rewardSet.add(p);
         	tp.rewards = rewards;
         	int totalTime = (int)(System.currentTimeMillis()-startTime)/1000;
-        	tellPlayer(p, "You finished in "+totalTime+" seconds!");
+        	tellPlayer(p, Translation.tr("game.finishTime", ""+totalTime));
         	
         	// Update ScoreBoards
         	List<String> scores = new ArrayList<String>();
@@ -111,13 +91,9 @@ public class Adventure extends Game{
         	if(readySet.equals(playerSet)){
         		endGame();
         	} else {
-        		tellPlayer(p, "You are ready to leave!");
+        		tellPlayer(p, Translation.tr("game.readyToLeave"));
         		tp.currentCheckpoint = null;
         	}
-        }
-        else
-        {
-            tellPlayer(p, "WTF!? Get out of here!");
         }
 	}
 	
@@ -135,5 +111,22 @@ public class Adventure extends Game{
 
 		for(Location loc : tempLocs)
 			TCMobHandler.SpawnMobs(this, loc, mobSpawnpointMap.remove(loc).a);
+	}
+	
+	public void onEntityKilledByEntity(LivingEntity killed, Entity killer){
+		
+		super.onEntityKilledByEntity(killed, killer);
+		TCUtils.sendDeathMessage(this, killed, killer);
+        
+        if(killer instanceof Player){
+       		if(mobGoldMap != null && mobGoldMap.containsKey(killed.getEntityId())){
+           		for(Player p : playerSet){
+           			int gold = mobGoldMap.get(killed.getEntityId())/playerSet.size();
+           			TempleManager.templePlayerMap.get(p).roundGold += gold;
+           			if(TempleCraft.method != null)
+           				TempleCraft.method.getAccount(p.getName()).add(gold);
+           		}
+           	}
+       	}
 	}
 }

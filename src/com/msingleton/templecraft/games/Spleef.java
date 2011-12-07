@@ -3,24 +3,17 @@ package com.msingleton.templecraft.games;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
-import com.msingleton.templecraft.TCUtils;
 import com.msingleton.templecraft.Temple;
-import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.util.MobArenaClasses;
 
-public class Spleef extends Game{	
-	public Map<Location,Integer> checkpointMap = new HashMap<Location,Integer>();
-    public Map<Location,String[]> chatMap      = new HashMap<Location,String[]>();
+public class Spleef extends Game{
     public Map<Location,String> brokenBlockMap = new HashMap<Location,String>();
     public Set<Player> aliveSet                = new HashSet<Player>();
     private Timer gameTimer                    = new Timer();
@@ -30,6 +23,7 @@ public class Spleef extends Game{
 	
 	public Spleef(String name, Temple temple, World world) {
 		super(name, temple, world);
+		world.setPVP(false);
 	}
 	
 	public void playerJoin(Player p){	
@@ -44,15 +38,16 @@ public class Spleef extends Game{
 	
 	public void endGame(){
 		gameTimer.cancel();
-		TempleManager.tellAll("Spleef game finished in: \""+temple.templeName+"\"");
 		super.endGame();
 	}
 	
 	public void startRound(){
+		isRunning = true;
 		roundNum++;
 		restorePlayingField();
-		for(Location loc : lobbyLocSet)
+		for(Location loc : lobbyLocMap.keySet())
 			loc.getBlock().setTypeId(0);
+		deadSet.clear();
 		aliveSet.addAll(playerSet);
 		tellAll("Round "+roundNum);
 	}
@@ -71,21 +66,9 @@ public class Spleef extends Game{
 			};
 			gameTimer.schedule(task, 2000);
 		} else {
-			for(Location loc : lobbyLocSet)
+			for(Location loc : lobbyLocMap.keySet())
 				loc.getBlock().setTypeId(42);
 		}
-	}
-	
-	public Location getPlayerSpawnLoc() {
-		Random r = new Random();
-		Location loc = null;
-		for(Location l : startLocSet){
-			if(loc == null)
-				loc = l;
-			else if(r.nextInt(startLocSet.size()) == 0)
-				loc = l;
-		}
-		return loc;
 	}
 	
 	private void restorePlayingField() {
@@ -116,40 +99,5 @@ public class Spleef extends Game{
 			winner = p;
 			endRound();
 		}
-	}
-	
-	protected void handleSign(Sign sign) {
-		String[] Lines = sign.getLines();
-		Block b = sign.getBlock();
-		
-		
-		if(!Lines[0].equals("[TempleCraft]") && !Lines[0].equals("[TC]")){
-			return;
-		}
-			
-		
-		if(Lines[1].toLowerCase().equals("spawnarea")){
-			int radius;
-			try{
-				radius = Math.abs(Integer.parseInt(Lines[3]));
-			}catch(Exception e){
-				radius = 5;
-			}
-			
-			//Get a square area of blocks and then keep the ones that are a distance radius away or less
-			int y = b.getY();
-			for(int i=0;i<=radius;i++){
-				for(int k=0;k<=radius;k++){
-					int x = b.getX()+i;
-					int z = b.getZ()+k;
-					Location loc = new Location(world,x, y, z);
-					if(TCUtils.distance(b.getLocation(), loc) <= radius)
-						startLocSet.add(loc);
-				}
-			}
-			
-			b.setTypeId(0);	
-		}
-		super.handleSign(sign);
 	}
 }

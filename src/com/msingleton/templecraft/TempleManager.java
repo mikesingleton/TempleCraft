@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
 import com.msingleton.templecraft.games.Game;
 import com.msingleton.templecraft.scoreboards.ScoreBoardManager;
 import com.msingleton.templecraft.util.MobArenaClasses;
+import com.msingleton.templecraft.util.Translation;
 
 public class TempleManager
 {
@@ -51,7 +52,6 @@ public class TempleManager
     public static String breakableMats;
     public static String goldPerMob;
     
-    final public static String[] mobs = {"Chicken","Cow","Pig","Sheep","Zombie","PigZombie","Skeleton","Creeper","Wolf","Ghast","Monster","Slime","Spider","Squid","CaveSpider","Enderman"};
     final public static Set<String> modes = new HashSet<String>(Arrays.asList("adventure","race","spleef"));
     //future modes: "race","ctf","koth","assult","assassin"
     
@@ -141,18 +141,18 @@ public class TempleManager
     public static void playerList(Player p){
 		if (playerSet.isEmpty())
 		{
-		    tellPlayer(p, "There is no one in a Temple right now.");
+		    tellPlayer(p, Translation.tr("templesEmpty"));
 		    return;
 		}
 		
 		for(Game game : gameSet)
-			game.playerList(p, false);
+			game.playerList(p);
 	}
     
     public static void notReadyList(Player p){
 		if (playerSet.isEmpty())
 		{
-		    tellPlayer(p, "There is no one in a Temple right now.");
+		    tellPlayer(p, Translation.tr("templesEmpty"));
 		    return;
 		}
 		
@@ -224,7 +224,7 @@ public class TempleManager
 		
 		if(game != null && !game.isEnding){
 			if(game.readySet.equals(game.playerSet)){
-				if(!game.isRunning){
+				if(!game.isRunning && playerSet.size() > 0){
 					game.startGame();
 				} else {
 					game.endGame();

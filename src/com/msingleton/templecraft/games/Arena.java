@@ -10,7 +10,9 @@ import java.util.TimerTask;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
@@ -39,7 +41,6 @@ public class Arena extends Game{
 
 	public void endGame() {
 		endTimer();
-		TempleManager.tellAll("Arena game finished in: \""+temple.templeName+"\"");
 		super.endGame();
 	}
 	
@@ -47,18 +48,6 @@ public class Arena extends Game{
 	{
 		super.playerDeath(p);
 		TempleManager.playerLeave(p);
-	}
-	
-	public Location getPlayerSpawnLoc() {
-		Random r = new Random();
-		Location loc = null;
-		for(Location l : startLocSet){
-			if(loc == null)
-				loc = l;
-			else if(r.nextInt(startLocSet.size()) == 0)
-				loc = l;
-		}
-		return loc;
 	}
 	
 	/* ///////////////////////////////////////////////////////////////////// //
@@ -173,5 +162,13 @@ public class Arena extends Game{
 			}
 		};
     	new Timer().schedule(task,1000);
+	}
+	
+	public void onEntityKilledByEntity(LivingEntity killed, Entity killer){
+		super.onEntityKilledByEntity(killed, killer);
+		
+        // Starts a new round if all the round's mobs are killed
+        if(monsterSet.isEmpty())
+        	nextRound();
 	}
 }

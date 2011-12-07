@@ -77,7 +77,7 @@ public class MobArenaClasses extends PlayerListener{
 	        if(classes.contains(Line2)){
 	        	if (a == Action.RIGHT_CLICK_BLOCK)
 	            {
-	                TempleManager.tellPlayer(p, "Punch the sign to select a class.");
+	                TempleManager.tellPlayer(p, Translation.tr("classes.selectClass"));
 	                return;
 	            }
 	        	
@@ -85,9 +85,9 @@ public class MobArenaClasses extends PlayerListener{
 	        	
 	        	// Set the player's class.
 	    		Game game = tp.currentGame;
-	        	if(game != null){
+	        	if(game != null && (!game.isRunning || game.deadSet.contains(p))){
 	        		assignClass(p, Line2);
-		        	TempleManager.tellPlayer(p, "You have chosen " + Line2 + " as your class!");
+		        	TempleManager.tellPlayer(p, Translation.tr("classes.classChosen", Line2));
 	        	}
 				return;
 	        }
@@ -106,7 +106,7 @@ public class MobArenaClasses extends PlayerListener{
 	{
 		if(!TCUtils.hasPlayerInventory(p.getName()))
 			TCUtils.keepPlayerInventory(p);
-		p.setHealth(20);
+		TCUtils.restoreHealth(p);
 		giveClassItems(p, className);
 		classMap.put(p, className);
 	}

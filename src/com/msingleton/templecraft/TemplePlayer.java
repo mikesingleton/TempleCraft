@@ -14,14 +14,16 @@ import org.bukkit.inventory.ItemStack;
 
 import com.msingleton.templecraft.games.Game;
 import com.msingleton.templecraft.listeners.TCPlayerListener;
+import com.msingleton.templecraft.util.Translation;
 
 public class TemplePlayer{
 	public Set<Object> tempSet = new HashSet<Object>();
 	public List<ItemStack> rewards = new ArrayList<ItemStack>();
 	public int roundMobsKilled;
-	protected int roundPlayersKilled;
+	public int roundPlayersKilled;
 	public int roundGold;
 	public int roundDeaths;
+	public int team;
 	public Sign sensedSign;
 	public boolean canAutoTele;
 	protected int ownedTemples;
@@ -39,16 +41,18 @@ public class TemplePlayer{
 	
 	public TemplePlayer(Player p){
 		name         = p.getName();
-		ownedTemples = 0;
+		ownedTemples = getOwnedTemples();
+		team         = -1;
 		canAutoTele  = false;
     	resetRoundStats();
-    	getOwnedTemples();
 	}
 
-	private void getOwnedTemples() {
+	private int getOwnedTemples() {
+		int ownedTemples = 0;
 		for(Temple temple : TempleManager.templeSet)
 			if(temple.owners.contains(name.toLowerCase()))
 				ownedTemples++;
+		return ownedTemples;
 	}
 
 	/*protected void displayStats(){
@@ -74,7 +78,7 @@ public class TemplePlayer{
             public void run()
             {
             	if(count <= 3 && count > 0){
-            		TempleManager.tellPlayer(p, "Entering Temple in "+count+"...");
+            		TempleManager.tellPlayer(p, Translation.tr("enteringTemple",count));
             	} else if(count <= 0){
             		TCPlayerListener.handleSignClicked(p,tp.sensedSign);
     	    		tp.sensedSign = null;

@@ -13,7 +13,7 @@ public class InventoryStash {
 	private ItemStack chest;
 	private ItemStack legs;
 	private ItemStack feet;
-	private int health;
+	private double health;
 	private int foodLevel;
 	private int experience;
 	private GameMode gameMode;
@@ -22,7 +22,7 @@ public class InventoryStash {
 		this.setContents(contents);
 	}
 	
-	public InventoryStash(ItemStack[] contents, ItemStack helmet, ItemStack chest, ItemStack legs, ItemStack feet, int health, int foodLevel, int experience, GameMode gameMode) {
+	public InventoryStash(ItemStack[] contents, ItemStack helmet, ItemStack chest, ItemStack legs, ItemStack feet, double health, int foodLevel, int experience, GameMode gameMode) {
 		this.setContents(contents);
 		this.setHelmet(helmet);
 		this.setChest(chest);
@@ -74,11 +74,11 @@ public class InventoryStash {
 		return feet;
 	}
 	
-	public void setHealth(int health) {
+	public void setHealth(double health) {
 		this.health = health;
 	}
 
-	public int getHealth() {
+	public double getHealth() {
 		return health;
 	}
 	

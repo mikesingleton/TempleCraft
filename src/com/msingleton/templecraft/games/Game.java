@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.bukkit.ChatColor;
@@ -37,17 +38,20 @@ import com.msingleton.templecraft.TempleManager;
 import com.msingleton.templecraft.TemplePlayer;
 import com.msingleton.templecraft.util.MobArenaClasses;
 import com.msingleton.templecraft.util.Pair;
+import com.msingleton.templecraft.util.Translation;
 import com.nijikokun.register.payment.Method.MethodAccount;
 
 public class Game{
 	public World world;
 	public Temple temple;
+	public String gameType;
 	public String gameName;
-    public boolean isRunning     = false;
-    public boolean isEnding      = false;
-    public boolean isSetup       = false;
-    public boolean isLoaded      = false;
-    public boolean usingClasses  = false;
+    public boolean isRunning      = false;
+    public boolean isEnding       = false;
+    public boolean isSetup        = false;
+    public boolean isLoaded       = false;
+    public boolean alwaysJoinable = false;
+    public boolean usingClasses   = false;
 	public int rejoinCost;
 	public int maxPlayers;
     
@@ -72,22 +76,22 @@ public class Game{
     
     // Contains Active Mob Spawnpoints and Creature Types
     public Map<Location,Pair<CreatureType,Integer>> mobSpawnpointMap     = new HashMap<Location,Pair<CreatureType,Integer>>();
-    public Map<Integer,Integer> mobGoldMap             = new HashMap<Integer,Integer>();
-	public Map<Location,Integer> checkpointMap         = new HashMap<Location,Integer>();
-    public Map<Location,String[]> chatMap              = new HashMap<Location,String[]>();
+    public Map<Integer, Integer> mobGoldMap            = new HashMap<Integer, Integer>();
+	public Map<Location, Integer> checkpointMap        = new HashMap<Location, Integer>();
+    public Map<Location, String[]> chatMap             = new HashMap<Location, String[]>();
     public Map<Location, List<ItemStack>> rewardLocMap = new HashMap<Location, List<ItemStack>>();
+    public Map<Location, Integer> lobbyLocMap          = new HashMap<Location, Integer>();
+    public Map<Location, Integer> startLocMap          = new HashMap<Location, Integer>();
     
 	public Set<Player> playerSet        = new HashSet<Player>();
     public Set<Player> readySet         = new HashSet<Player>();
     public Set<Player> deadSet          = new HashSet<Player>();
     public Set<Player> rewardSet        = new HashSet<Player>();
     public Set<LivingEntity> monsterSet = new HashSet<LivingEntity>();
-	
+    
     public Set<Location> coordLocSet = new HashSet<Location>();
     public Set<Block> tempBlockSet   = new HashSet<Block>();
-    public Set<Location> startLocSet = new HashSet<Location>();
     public Set<Location> endLocSet   = new HashSet<Location>();
-    public Set<Location> lobbyLocSet = new HashSet<Location>();
     public List<ItemStack> rewards    = new ArrayList<ItemStack>();
     
     public long startTime;
@@ -99,6 +103,7 @@ public class Game{
     
 	public Game(String name, Temple temple, World world){
 		TempleManager.gameSet.add(this);
+		gameType      = getClass().getSimpleName();
 		gameName      = name;
 		this.world    = world;
 		this.temple   = temple;
@@ -116,11 +121,15 @@ public class Game{
 		isRunning = true;
 		startTime = System.currentTimeMillis();
 		convertSpawnpoints();
-		for(Player p : playerSet)
-			p.teleport(getPlayerSpawnLoc());
+		for(Player p : playerSet){
+			TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+			if(tp.team != -1)
+				p.getInventory().setHelmet(new ItemStack(Material.WOOL,1,(short)0,(byte)tp.team));
+			p.teleport(getPlayerSpawnLoc(tp));
+		}
 		readySet.clear();
 		
-		tellAll("Let the games begin!");
+		tellAll(Translation.tr("game.start"));
 	}
 
 	/**
@@ -128,6 +137,7 @@ public class Game{
 	*/
 	public void endGame()
 	{
+		TempleManager.tellAll(Translation.tr("game.finished", gameType, temple.templeName));
 		isRunning = false;
 		isEnding = true;
 		readySet.clear();
@@ -170,7 +180,6 @@ public class Game{
 			int size = tempList.size();
 			if(size == 0)
 				continue;
-			msg.append("You recieved ");
 			for(int i = 0; i<size; i++){
 				ItemStack item = tempList.get(i);
 				if(item != null){
@@ -178,16 +187,15 @@ public class Game{
 					if(i<size-2)
 						msg.append(", ");
 					else if(i<size-1)
-						msg.append(" and ");
+						msg.append(" "+Translation.tr("and")+" ");
 					p.getInventory().addItem(item);
 				}
 			}
-			msg.append(" for completing the temple!");
-			TempleManager.tellPlayer(p,msg.toString());
+			TempleManager.tellPlayer(p,Translation.tr("game.treasureReceived", msg.toString()));
 		}
 	}
 	
-	private void convertLobby(){
+	protected void convertLobby(){
 		for(Block b: getBlockSet(Material.WALL_SIGN.getId())){     
 	        // Cast the block to a sign to get the text on it.
 			if(!(b.getState() instanceof Sign))
@@ -206,7 +214,11 @@ public class Game{
 		for(Block b: getBlockSet(goldBlock)){
     		Block rb = b.getRelative(0, -1, 0);
     		if(rb.getTypeId() == ironBlock){
-    			lobbyLocSet.add(rb.getLocation());
+    			Block rb2 = b.getRelative(0,1,0);
+    			if(rb2.getType().equals(Material.WOOL))
+    				lobbyLocMap.put(rb.getLocation(), (int)rb2.getData());
+    			else
+    				lobbyLocMap.put(rb.getLocation(), -1);
     			b.setTypeId(0);
     			rb.setTypeId(ironBlock);
     		} else {
@@ -236,7 +248,11 @@ public class Game{
 	    for(Block b: getBlockSet(diamondBlock)){
     		Block rb = b.getRelative(0, -1, 0);
     		if(rb.getTypeId() == ironBlock){
-    			startLocSet.add(rb.getLocation());
+    			Block rb2 = b.getRelative(0,1,0);
+    			if(rb2.getType().equals(Material.WOOL))
+    				startLocMap.put(rb.getLocation(), (int)rb2.getData());
+    			else
+    				startLocMap.put(rb.getLocation(), -1);
     			b.setTypeId(0);
     			rb.setTypeId(0);
     		} else if(rb.getTypeId() == goldBlock){
@@ -302,30 +318,49 @@ public class Game{
 		} else if(Lines[1].toLowerCase().equals("checkpoint")){
 			try{
 				checkpointMap.put(sign.getBlock().getLocation(), Integer.parseInt(Lines[3]));
-				String[] newLines = {"Checkpoint Reached",Lines[3]};
+				String[] newLines = {Translation.tr("game.checkpoint"),Lines[3]};
 				chatMap.put(b.getLocation(), newLines);
 			} catch(Exception e){
 				checkpointMap.put(sign.getBlock().getLocation(), 5);
-				String[] newLines = {"Checkpoint Reached","5"};
+				String[] newLines = {Translation.tr("game.checkpoint"),"5"};
 				chatMap.put(b.getLocation(), newLines);
 			}
 			b.setTypeId(0);
-		} else {
-			String s = Lines[1]+Lines[2]+Lines[3];
-			for(String mob : TempleManager.mobs){
-				if(s.toLowerCase().contains(mob.toLowerCase())){
-					int range;
-					try{
-						range = Integer.parseInt(Lines[3]);
-					}catch(Exception e){
-						range = 20;
-					}
-					Location loc = new Location(b.getWorld(),b.getX()+.5,b.getY(),b.getZ()+.5);
-					mobSpawnpointSet.add(loc);
-		    		mobSpawnpointMap.put(loc,new Pair<CreatureType,Integer>(TCMobHandler.getRandomCreature(),range));
-		    		b.setTypeId(0);
+		} else if(Lines[1].toLowerCase().equals("spawnarea")){
+			int radius;
+			try{
+				radius = Math.abs(Integer.parseInt(Lines[3]));
+			}catch(Exception e){
+				radius = 5;
+			}
+			
+			//Get a square area of blocks and then keep the ones that are a distance radius away or less
+			int y = b.getY();
+			for(int i=-radius;i<=radius;i++){
+				for(int k=-radius;k<=radius;k++){
+					int x = b.getX()+i;
+					int z = b.getZ()+k;
+					Location loc = new Location(world,x, y, z);
+					if(TCUtils.distance(b.getLocation(), loc) <= radius)
+						startLocMap.put(loc, -1);
 				}
 			}
+			
+			b.setTypeId(0);	
+		} else {
+			CreatureType ct = CreatureType.fromName(Lines[1]);
+			if(ct == null)
+				return;
+			int range;
+			try{
+				range = Integer.parseInt(Lines[3]);
+			}catch(Exception e){
+				range = 20;
+			}
+			Location loc = new Location(b.getWorld(),b.getX()+.5,b.getY(),b.getZ()+.5);
+			mobSpawnpointSet.add(loc);
+    		mobSpawnpointMap.put(loc,new Pair<CreatureType,Integer>(ct,range));
+    		b.setTypeId(0);
 		}
 	}
 	
@@ -333,8 +368,35 @@ public class Game{
 		
 	}
 
-	public Location getPlayerSpawnLoc() {
-		return null;
+	public Set<Location> getPossibleSpawnLocs(int team){
+		if(team == -1)
+			return startLocMap.keySet();
+		
+		Set<Location> tempSet = new HashSet<Location>();
+		for(Location l : startLocMap.keySet())
+			if(startLocMap.get(l) == team)
+				tempSet.add(l);
+		
+		if(tempSet.isEmpty())
+			return startLocMap.keySet();
+		else
+			return tempSet;
+	}
+	
+	public Location getPlayerSpawnLoc(TemplePlayer tp) {
+		Random r = new Random();
+		Location loc = null;
+		Set<Location> locSet = new HashSet<Location>();
+		
+		locSet = getPossibleSpawnLocs(tp.team);
+			
+		for(Location l : locSet){
+			if(loc == null)
+				loc = l;
+			else if(r.nextInt(locSet.size()) == 0)
+				loc = l;
+		}
+		return loc;
 	}
 
 	/**
@@ -346,36 +408,36 @@ public class Game{
 	{		
 		if (!TempleManager.isEnabled)
 		{
-		    tellPlayer(p, "TempleCraft is not enabled.");
+		    tellPlayer(p, Translation.tr("notEnabled"));
 		    return;
 		}
-		if (!isSetup)
+		if (playerSet.isEmpty() && !temple.trySetup(world))
 		{
-			tellPlayer(p, "Temple \""+temple.templeName+"\" has not been set up yet!");
+			tellPlayer(p, Translation.tr("templeNotSetup", temple.templeName));
+			TCUtils.deleteTempWorld(world);
 			return;
 		}
 		if (playerSet.contains(p))
 		{
-		    tellPlayer(p, "You are already playing!");
+		    tellPlayer(p, Translation.tr("game.alreadyPlayingSame"));
 		    return;
 		}
 		if (TempleManager.playerSet.contains(p))
 		{
-		    tellPlayer(p, "You are already playing in a different Temple!");
+		    tellPlayer(p, Translation.tr("game.alreadyPlaying"));
 		    return;
 		}
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		if(tp.currentGame != null){
-			tellPlayer(p, "Please leave the current game before joining another.");
 			return;
 		}
-		if (isRunning)
+		if (isRunning && !alwaysJoinable)
 		{
-		    tellPlayer(p, "Game \""+gameName+"\" in progress.");
+		    tellPlayer(p, Translation.tr("game.inProgress", gameName));
 		    return;
 		}
 		if(isFull()){
-			tellPlayer(p, "Game \""+gameName+"\" is full.");
+			tellPlayer(p, Translation.tr("game.isFull", gameName));
 			return;
 		}
 		
@@ -397,13 +459,13 @@ public class Game{
 		if(!TCUtils.hasPlayerInventory(p.getName()))
 			TCUtils.keepPlayerInventory(p);
 		
-		p.setHealth(20);
-		p.setFoodLevel(20);
-		p.setExperience(0);
-		MobArenaClasses.clearInventory(p);
+		TCUtils.restoreHealth(p);
+		p.setFoodLevel(TCUtils.MAX_FOOD);
+		p.setTotalExperience(0);
+		TCUtils.clearInventory(p);
 		
 		p.teleport(lobbyLoc);
-		tellPlayer(p, "You joined "+temple.templeName+". Have fun!");
+		tellPlayer(p, Translation.tr("game.join", gameName));
 		p.setGameMode(GameMode.SURVIVAL);
 	}
 	
@@ -421,13 +483,9 @@ public class Game{
 	/**
 	* Prints the list of players currently in the Temple session.
 	*/
-	public void playerList(Player p, boolean tellIfEmpty){
+	public void playerList(Player p){
 		if (playerSet.isEmpty())
-		{
-			if(tellIfEmpty)
-				tellPlayer(p, "There is no one in the Temple right now.");
 		    return;
-		}
 		
 		StringBuffer list = new StringBuffer();
 		final String SEPARATOR = ", ";
@@ -437,7 +495,25 @@ public class Game{
 		    list.append(SEPARATOR);
 		}
 		
-		tellPlayer(p, ChatColor.GRAY + "Playing in " + gameName + ": " + ChatColor.WHITE + list.substring(0, list.length() - 2));
+		tellPlayer(p, Translation.tr("game.plist", gameName, list.substring(0, list.length() - 2)));
+	}
+	
+	/**
+	* Resets players Class and Stats
+	*/
+	public void playerDeath(Player p)
+	{
+		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
+		
+		deadSet.add(p);
+		MobArenaClasses.classMap.remove(p);
+		tp.tempSet.clear();
+		tp.roundDeaths++;
+		
+		TCUtils.restoreHealth(p);
+		p.setFoodLevel(20);
+		p.setTotalExperience(0);
+		p.setFireTicks(0);
 	}
 	
 	/**
@@ -447,21 +523,18 @@ public class Game{
 	{
 		if(isRunning)
 		{
-			tellPlayer(p, gameName + " is in Progress.");
+			tellPlayer(p, Translation.tr("game.inProgress", gameName));
 			return;
 		}
 		if (playerSet.isEmpty())
-		{
-		    tellPlayer(p, "No one is in " + temple.templeName + ".");
 		    return;
-		}
 		
 		Set<Player> notReadySet = new HashSet<Player>(playerSet);
 		notReadySet.removeAll(readySet);
 		
 		if (notReadySet.isEmpty())
 		{
-		    tellPlayer(p, "Everyone is ready in " + temple.templeName + ".");
+		    tellPlayer(p, Translation.tr("game.everyoneReady", gameName));
 		    return;
 		}
 		
@@ -473,7 +546,7 @@ public class Game{
 		    list.append(SEPARATOR);
 		}
 		
-		tellPlayer(p, ChatColor.GRAY + "Not ready in " + temple.templeName + ": " + ChatColor.WHITE + list.substring(0, list.length() - 2));
+		tellPlayer(p, Translation.tr("game.rlist", gameName, list.substring(0, list.length() - 2)));
 	}
 	
 	/**
@@ -484,12 +557,12 @@ public class Game{
 	public void forceStart(Player p){
 		if (isRunning)
 		{
-		    tellPlayer(p, "Game has already started.");
+		    tellPlayer(p, Translation.tr("game.inProgress", gameName));
 		    return;
 		}
 		if (readySet.isEmpty())
 		{
-		    tellPlayer(p, "Can't force start, no players are ready.");
+		    tellPlayer(p, Translation.tr("game.forceStartFail"));
 		    return;
 		}
 		
@@ -502,23 +575,18 @@ public class Game{
 		}
 		
 		if(p != null)
-			tellPlayer(p, "Forced Game start.");
+			tellPlayer(p, Translation.tr("game.forcedStart"));
 	}
 	
 	/**
 	* Forcefully ends the Temple, causing all players to leave and
 	* all relevant sets and maps to be cleared.
 	*/
-	public void forceEnd(Player p){
-		if (playerSet.isEmpty() && p != null){
-		    tellPlayer(p, "No one is in the Temple.");
-		    return;
-		}
-		
+	public void forceEnd(Player p){		
 		endGame();
 		
 		if(p != null)
-			tellPlayer(p, "Forced Game end.");
+			tellPlayer(p, Translation.tr("game.forcedEnd"));
 	}
 	
 	/* ///////////////////////////////////////////////////////////////////// //
@@ -560,27 +628,6 @@ public class Game{
     	for (Entity e : world.getEntities())
     		if(!(e instanceof Player))
     			e.remove();
-	}
-	
-	/**
-	* Removes a dead player from the Temple session.
-	* The player is teleported safely back to the spectator area,
-	* and their health is restored. All sets and maps are updated.
-	* If this was the last player alive, the Temple session ends.
-	*/
-	public void playerDeath(Player p)
-	{
-		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
-		
-		deadSet.add(p);
-		MobArenaClasses.classMap.remove(p);
-		tp.tempSet.clear();
-		tp.roundDeaths++;
-		
-		p.setHealth(20);
-		p.setFoodLevel(20);
-		p.setExperience(0);
-		p.setFireTicks(0);
 	}
 	
 	/* ///////////////////////////////////////////////////////////////////// //
@@ -637,7 +684,7 @@ public class Game{
     			String[] data = s.split(",");
     			standings.add(new Pair<String,Double>(data[0],Double.parseDouble(data[1])));
     		}catch(Exception e){
-    			System.out.println("temples.yml scores are not set up correctly!");
+    			e.printStackTrace();
     		}
         }
 		return standings;
@@ -666,7 +713,7 @@ public class Game{
     			if(Integer.parseInt(s) > saveAmount)
     				selection.set(s, null);
     		}catch(Exception e){
-    			System.out.println("temples.yml scores are not set up correctly!");
+    			e.printStackTrace();
     		}
         }
         
@@ -698,20 +745,29 @@ public class Game{
 			tellPlayer((Player)p, msg);	    
 	}
 
-	public void hitStartBlock(Player p) {
+	public void hitStartBlock(Player p, int team) {
+		if(isRunning && !deadSet.contains(p))
+			return;
+			
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		if(!usingClasses || MobArenaClasses.classMap.containsKey(p)){
         	if(!isRunning){
-	            tellPlayer(p, "You have been flagged as ready!");
+	            tellPlayer(p, Translation.tr("game.ready"));
+	            tp.team = team;
+	    		if(tp.team != -1){
+	    			p.getInventory().setHelmet(new ItemStack(Material.WOOL,1,(short)0,(byte)team));
+	    			tellPlayer(p, Translation.tr("game.team", TCUtils.getWoolColor(team)));
+	    		}
 	            playerReady(p);
 	         // If a method is installed
-        	} else if(TempleCraft.method != null){	        		
+        	} else if(TempleCraft.method != null){	        	
+        		String s = TempleCraft.method.format(2.0);
+				String currencyName = s.substring(s.indexOf(" ") + 1);
         		MethodAccount balance = TempleCraft.method.getAccount(p.getName());
         		// if player has enough money subtract money from account
         		if(balance.hasEnough(rejoinCost)){    				
     				if(rejoinCost > 0){
-    					String msg = ChatColor.GOLD + "" + rejoinCost+" gold"+ChatColor.WHITE+" has been subtracted from your account.";
-    					tellPlayer(p, msg);
+    					tellPlayer(p, Translation.tr("game.transaction", rejoinCost, currencyName));
     					balance.subtract(rejoinCost);
 	            	}
     				
@@ -719,27 +775,28 @@ public class Game{
 	        		if(tp.currentCheckpoint != null)
 						p.teleport(tp.currentCheckpoint);
 					else
-						p.teleport(getPlayerSpawnLoc());
+						p.teleport(getPlayerSpawnLoc(tp));
 	   
         		} else {
-        			TempleManager.tellPlayer(p, "You do not have enough gold to rejoin.");
+        			TempleManager.tellPlayer(p, Translation.tr("adventure.rejoinFail1"));
+        			TempleManager.tellPlayer(p, Translation.tr("adventure.rejoinFail2"));
         		}
         	} else {
         		deadSet.remove(p);
         		if(tp.currentCheckpoint != null)
 					p.teleport(tp.currentCheckpoint);
 				else
-					p.teleport(getPlayerSpawnLoc());
+					p.teleport(getPlayerSpawnLoc(tp));
         		
         		if(!usingClasses){
     				if(TCUtils.hasPlayerInventory(p.getName()))
     					TCUtils.restorePlayerInventory(p);
     				TCUtils.keepPlayerInventory(p);
-    				p.setHealth(20);
+    				TCUtils.restoreHealth(p);
 				}
         	}
     	} else {
-    		tellPlayer(p, "You must pick a class first!");
+    		tellPlayer(p, Translation.tr("game.pickAClass"));
     	}
 	}
 	
@@ -751,17 +808,13 @@ public class Game{
         	rewardSet.add(p);
         	tp.rewards = rewards;
         	int totalTime = (int)(System.currentTimeMillis()-startTime)/1000;
-        	tellPlayer(p, "You finished in "+totalTime+" seconds!");
+        	tellPlayer(p, Translation.tr("game.finishTime", ""+totalTime));
         	if(readySet.equals(playerSet)){
         		endGame();
         	} else {
-        		tellPlayer(p, "You are ready to leave!");
+        		tellPlayer(p, Translation.tr("game.readyToLeave"));
         		tp.currentCheckpoint = null;
         	}
-        }
-        else
-        {
-            tellPlayer(p, "WTF!? Get out of here!");
         }
 	}
 
@@ -776,10 +829,9 @@ public class Game{
 		int size = tempList.size();
 		StringBuilder msg = new StringBuilder();
 		if(size == 0){
-			tellAll(p.getDisplayName()+" has found an empty treasure block!");
+			tellAll(Translation.tr("game.emptyTreasureFound", p.getDisplayName()));
 		} else {
-			tellAll(p.getDisplayName()+" has found a treasure block!");
-			msg.append("You will receive ");
+			tellAll(Translation.tr("game.treasureFound", p.getDisplayName()));
 			for(int i = 0; i<size; i++){
 				ItemStack item = tempList.get(i);
 				if(item != null){
@@ -787,11 +839,10 @@ public class Game{
 					if(i<size-2)
 						msg.append(", ");
 					else if(i<size-1)
-						msg.append(" and ");
+						msg.append(" "+Translation.tr("and")+" ");
 				}
 			}
-			msg.append(" if you get out alive!");
-			tellAll(msg.toString());
+			tellAll(Translation.tr("game.treasureMessage", msg.toString()));
 		}
 	}
 	
@@ -819,7 +870,7 @@ public class Game{
 					tp.tempSet.add(s);
 					p.chat(s);
 				} else {
-					p.sendMessage(c1+"Message: "+c2+s);
+					p.sendMessage(c1+Translation.tr("game.message")+": "+c2+s);
 				}
 				tp.tempSet.add(loc);
 			}
@@ -837,5 +888,28 @@ public class Game{
 	
 	public boolean isFull() {
 		return maxPlayers != -1 && playerSet.size() >= maxPlayers;
+	}
+
+	public void onEntityKilledByEntity(LivingEntity killed, Entity killer) {
+
+		if (killed instanceof Player)
+        {        
+            Player p = (Player) killed;
+            
+            if (!playerSet.contains(p))
+                return;
+            
+            if(killer instanceof Player){
+            	TemplePlayer tp2 = TempleManager.templePlayerMap.get((Player)killer);
+            	tp2.roundPlayersKilled++;
+            }
+            
+            playerDeath(p);
+        } else {            
+            if(killer instanceof Player)
+	           	TempleManager.templePlayerMap.get(killer).roundMobsKilled++;
+
+            monsterSet.remove(killed);
+        }
 	}
 }

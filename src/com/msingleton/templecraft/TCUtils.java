@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -32,17 +34,24 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+
+import com.herocraftonline.dev.heroes.hero.Hero;
 import com.msingleton.templecraft.games.Adventure;
+import com.msingleton.templecraft.games.Arena;
 import com.msingleton.templecraft.games.Game;
+import com.msingleton.templecraft.games.PVP;
 import com.msingleton.templecraft.games.Race;
 import com.msingleton.templecraft.games.Spleef;
 import com.msingleton.templecraft.util.InventoryStash;
+import com.msingleton.templecraft.util.Translation;
 
 public class TCUtils
 {                   
 	private static HashMap<String, InventoryStash> inventories = new HashMap<String, InventoryStash>();
     public static final List<Integer>  SWORDS_ID   = new LinkedList<Integer>();
     public static final List<Material> SWORDS_TYPE = new LinkedList<Material>();
+    public static final int MAX_HEALTH = 20;
+    public static final int MAX_FOOD = 20;
     static
     {
         SWORDS_TYPE.add(Material.WOOD_SWORD);
@@ -78,8 +87,13 @@ public class TCUtils
 	public static void keepPlayerInventory(Player player) {
 		PlayerInventory inventory = player.getInventory();
 		ItemStack[] contents = inventory.getContents();
+		double playerHealth;
+		if(TempleCraft.heroManager != null)
+			playerHealth = TempleCraft.heroManager.getHero(player).getHealth();
+		else
+			playerHealth = player.getHealth();
 		inventories.put(player.getName(), new InventoryStash(contents, inventory.getHelmet(), inventory.getChestplate(), 
-																inventory.getLeggings(), inventory.getBoots(), player.getHealth(), player.getFoodLevel(), player.getTotalExperience(), player.getGameMode()));	
+																inventory.getLeggings(), inventory.getBoots(), playerHealth, player.getFoodLevel(), player.getTotalExperience(), player.getGameMode()));	
 	}
     
 	public static void restorePlayerInventory(Player player) {
@@ -88,7 +102,13 @@ public class TCUtils
 		if(originalContents != null) {
 			playerInvFromInventoryStash(playerInv, originalContents);
 		}
-		player.setHealth(originalContents.getHealth());
+		if(TempleCraft.heroManager != null){
+			Hero hero = TempleCraft.heroManager.getHero(player);
+			hero.setHealth(originalContents.getHealth());
+			player.setHealth((int)(originalContents.getHealth()/hero.getMaxHealth()));
+		} else {
+			player.setHealth((int)originalContents.getHealth());
+		}
 		player.setFoodLevel(originalContents.getFoodLevel());
 		player.setTotalExperience(originalContents.getExperience());
 		player.setGameMode(originalContents.getGameMode());
@@ -338,23 +358,23 @@ public class TCUtils
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		
 		if(tp.ownedTemples >= TempleManager.maxTemplesPerPerson && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
-			TempleManager.tellPlayer(p, "You already own the maximum amount of Temples allowed.");
+			TempleManager.tellPlayer(p, Translation.tr("maxTemplesOwned"));
 			return false;
 		}
 		
 		if(temple != null){
-			TempleManager.tellPlayer(p, "Temple \""+templeName+"\" already exists");
+			TempleManager.tellPlayer(p, Translation.tr("templeAE",temple.templeName));
 			return false;
 		}
 		
 		if(tp.currentTemple != null){
-			TempleManager.tellPlayer(p, "Please leave the current Temple before attempting to create another.");
+			TempleManager.tellPlayer(p, Translation.tr("mustLeaveTemple"));
 			return false;
 		}
 		
 		for(char c : templeName.toCharArray()){
 			if(!Character.isLetterOrDigit(c)){
-				TempleManager.tellPlayer(p, "You may only name a temple using letters or numbers.");
+				TempleManager.tellPlayer(p, Translation.tr("nameFail"));
 				return false;
 			}
 		}
@@ -395,12 +415,12 @@ public class TCUtils
 		TemplePlayer tp = TempleManager.templePlayerMap.get(p);
 		
 		if(!temple.accessorSet.contains(p.getName()) && !temple.ownerSet.contains(p.getName()) && !TCPermissionHandler.hasPermission(p,"templecraft.editall")){
-			TempleManager.tellPlayer(p, "You do not have permission to edit this temple.");
+			TempleManager.tellPlayer(p, Translation.tr("cantEdit"));
 			return;
 		}
 		
 		if(tp.currentTemple != null && tp.currentTemple != temple){
-			TempleManager.tellPlayer(p, "Please leave the current Temple before attempting to edit another.");
+			TempleManager.tellPlayer(p, Translation.tr("mustLeaveTemple"));
 			return;
 		}
 		
@@ -412,9 +432,9 @@ public class TCUtils
 		
 		if(EditWorld == null){
 			if(TempleManager.constantWorldNames)
-				TempleManager.tellPlayer(p, "Temple is already in use.");
+				TempleManager.tellPlayer(p, Translation.tr("templeInUse", temple.templeName));
 			else
-				TempleManager.tellPlayer(p, "Unable to edit temple at this time.");
+				TempleManager.tellPlayer(p, Translation.tr("editTempleFail"));
 			return;
 		}
 		
@@ -584,9 +604,9 @@ public class TCUtils
 		String gameName;
 		String mode;
 		
-		TempleManager.tellPlayer(p, "Creating a new game...");
+		TempleManager.tellPlayer(p, Translation.tr("newGame"));
 		if(args.length < 2){
-			TempleManager.tellPlayer(p, "Incorrect number of arguements.");
+			TempleManager.tellPlayer(p, Translation.tr("incorrectArguments"));
 			return;
 		} else if(args.length < 3){
 			temple = getTempleByName(args[1]);
@@ -600,31 +620,31 @@ public class TCUtils
 		
 		// Check the validity of the arguements
 		if(temple == null){
-			TempleManager.tellPlayer(p, "Temple \""+args[1]+"\" does not exist");
+			TempleManager.tellPlayer(p, Translation.tr("templeDNE", args[1]));
 			return;
 		}
 		
 		if(!temple.isSetup){
-			TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" is not setup");
+			TempleManager.tellPlayer(p, Translation.tr("templeNotSetup", temple.templeName));
 			return;
 		}
 		
 		if(!TempleManager.modes.contains(mode)){
-			TempleManager.tellPlayer(p, "Mode \""+mode+"\" does not exist");
+			TempleManager.tellPlayer(p, Translation.tr("modeDNE", mode));
 			return;
 		}
 		
 		if(temple.maxPlayersPerGame < 1 && temple.maxPlayersPerGame != -1){
-			TempleManager.tellPlayer(p, "Temple \""+temple.templeName+"\" is unjoinable");
+			TempleManager.tellPlayer(p, Translation.tr("templeFull", temple.templeName));
 			return;
 		}
 		
 		if(newGame(gameName,temple,mode) != null)
-			TempleManager.tellPlayer(p, "New game \""+gameName+"\" created");
+			TempleManager.tellPlayer(p, Translation.tr("game.created",gameName));
 		else if(TempleManager.constantWorldNames)
-			TempleManager.tellPlayer(p, "Temple is already in use.");
+			TempleManager.tellPlayer(p, Translation.tr("templeInUse",temple.templeName));
 		else
-			TempleManager.tellPlayer(p, "Unable to create new game at this time.");
+			TempleManager.tellPlayer(p, Translation.tr("newGameFail"));
 	}
 
 	public static Game newGame(String name, Temple temple, String mode){
@@ -645,6 +665,10 @@ public class TCUtils
 			game = new Race(name, temple, world);
 		} else if(mode.equals("spleef")){
 			game = new Spleef(name, temple, world);
+		} else if(mode.equals("pvp")){
+			game = new PVP(name, temple, world);
+		} else if(mode.equals("arena")){
+			game = new Arena(name, temple, world);
 		} else {
 			game = new Adventure(name, temple, world);
 		}
@@ -732,9 +756,7 @@ public class TCUtils
      */
     public static void checkForUpdates(final Player p, boolean response)
     {
-    	return;
-    	/*
-        String site = "http://forums.bukkit.org/threads/30111/";
+        String site = "http://dev.bukkit.org/server-mods/templecraft/images/1";
         try
         {
             // Make a URL of the site address
@@ -749,13 +771,13 @@ public class TCUtils
             // If something's wrong with the connection...
             if (header == null)
             {
-                TempleManager.tellPlayer(p, "Couldn't connect to the TempleCraft thread.");
+                TempleManager.tellPlayer(p, Translation.tr("checkForUpdatesFail"));
                 return;
             }
             
             // Otherwise, grab the location header to get the real URI.
             String[] url = new URI(con.getHeaderField("Location")).toString().split("-");
-            double urlVersion = Double.parseDouble(url[3].replace("v", "")+"."+url[4]);
+            double urlVersion = Double.parseDouble(url[4].replace("v", "")+"."+url[5]);
             
             double thisVersion = Double.parseDouble(TempleManager.plugin.getDescription().getVersion());
             
@@ -765,22 +787,20 @@ public class TCUtils
                 if (!response)
                     return;
                     
-                TempleManager.tellPlayer(p, "Your version of TempleCraft is up to date!");
+                TempleManager.tellPlayer(p, Translation.tr("upToDate"));
                 return;
             }
             
             // Otherwise, notify the player that there is a new version.
-            TempleManager.tellPlayer(p, "There is a new version of TempleCraft available!");;
+            TempleManager.tellPlayer(p, Translation.tr("notUpToDate"));
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-        }*/
+        }
     }
     
-    public static void sendDeathMessage(Entity entity, Entity entity2){
-    	Game game = TCUtils.getGame(entity);
-    	
+    public static void sendDeathMessage(Game game, Entity entity, Entity entity2){
+  	
     	String msg = "";
     	String killed = getDisplayName(entity);
     	String killer = getDisplayName(entity2); 	
@@ -792,7 +812,7 @@ public class TCUtils
     	
 		for(Player p: game.playerSet){
 			//String key = p.getName() + "." + entity.getEntityId();
-			msg = killer + ChatColor.RED + " killed " + ChatColor.WHITE + killed;
+			msg = Translation.tr("killMessage", killer, killed);
     		
 			if(TempleCraft.method != null){
 				String s = TempleCraft.method.format(2.0);
@@ -832,7 +852,7 @@ public class TCUtils
 			}
 			os.close();
 			is.close();
-    	}catch(IOException e){
+    	}catch(Exception e){
     		e.printStackTrace();
     	}
 	}
@@ -865,7 +885,7 @@ public class TCUtils
 		if(y2>p.getWorld().getMaxHeight())
 			y2 = p.getWorld().getMaxHeight();
 		
-		TempleManager.tellPlayer(p, "Finding Significant Blocks from ("+x1+","+y1+","+z1+") to ("+x2+","+y2+","+z2+")...");
+		TempleManager.tellPlayer(p, Translation.tr("findingSigBlocks","("+x1+","+y1+","+z1+")","("+x2+","+y2+","+z2+")"));
 				
 		Map<Integer, Integer> foundBlocks = new HashMap<Integer, Integer>();
 		
@@ -888,9 +908,9 @@ public class TCUtils
 		
 		// Print Results
 		for(Integer id : foundBlocks.keySet())
-			TempleManager.tellPlayer(p, "Found "+foundBlocks.get(id)+" "+getMaterialName(Material.getMaterial(id).name()));
+			TempleManager.tellPlayer(p, Translation.tr("foundSigBlocks",foundBlocks.get(id),getMaterialName(Material.getMaterial(id).name())));
 		
-		TempleManager.tellPlayer(p, "Done.");
+		TempleManager.tellPlayer(p, Translation.tr("done"));
 	}
 	
 	public static String getMaterialName(String s){
@@ -921,5 +941,53 @@ public class TCUtils
 	      result.put(keyList.get(valueList.indexOf(sortedArray[i])), (Integer) sortedArray[i]);
 
 		return result;
+	}
+
+	public static String getWoolColor(int team) {
+		switch(team){
+			case 0:
+				return ChatColor.WHITE+"White";
+			case 1:
+				return ChatColor.GOLD+"Orange";
+			case 2:
+				return ChatColor.LIGHT_PURPLE+"Magenta";
+			case 3:
+				return ChatColor.AQUA+"Light Blue";
+			case 4:
+				return ChatColor.YELLOW+"Yellow";
+			case 5:
+				return ChatColor.GREEN+"Lime";
+			case 6:
+				return ChatColor.LIGHT_PURPLE+"Pink";
+			case 7:
+				return ChatColor.DARK_GRAY+"Gray";
+			case 8:
+				return ChatColor.GRAY+"Light Gray";
+			case 9:
+				return ChatColor.DARK_AQUA+"Cyan";
+			case 10:
+				return ChatColor.DARK_PURPLE+"Purple";
+			case 11:
+				return ChatColor.BLUE+"Blue";
+			case 12:
+				return ChatColor.GOLD+"Brown";
+			case 13:
+				return ChatColor.DARK_GREEN+"Green";
+			case 14:
+				return ChatColor.RED+"Red";
+			case 15:
+				return ChatColor.BLACK+"Black";
+			default:
+				return "";
+		}
+	}
+
+	public static void restoreHealth(Player p) {
+		if(TempleCraft.heroManager != null){
+			Hero hero = TempleCraft.heroManager.getHero(p);
+			hero.setHealth(hero.getMaxHealth());
+			hero.setMana(0);
+		}
+		p.setHealth(MAX_HEALTH);
 	}
 }

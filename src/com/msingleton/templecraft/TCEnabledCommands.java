@@ -4,6 +4,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
+import com.msingleton.templecraft.util.Translation;
+
 /**
  * Handles the disabled commands.
  */
@@ -40,6 +42,6 @@ public class TCEnabledCommands extends PlayerListener
             return;
         
         event.setCancelled(true);
-        TempleManager.tellPlayer(p, "You can't use that command in the temple!");
+        TempleManager.tellPlayer(p, Translation.tr("commandDisabled"));
     }
 }

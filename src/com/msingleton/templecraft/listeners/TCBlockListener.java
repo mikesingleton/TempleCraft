@@ -20,6 +20,7 @@ import com.msingleton.templecraft.TemplePlayer;
 import com.msingleton.templecraft.games.Game;
 import com.msingleton.templecraft.scoreboards.ScoreBoard;
 //import org.bukkit.event.block.BlockDamageEvent;
+import com.msingleton.templecraft.util.Translation;
 
 
 /**
@@ -53,7 +54,7 @@ public class TCBlockListener extends BlockListener
     				p.getWorld().dropItemNaturally(b.getLocation(), new ItemStack(323,1));
     				return;
     			} else {
-    				TempleManager.tellPlayer(p, "You do not have permission to break TCScoreBoards.");
+    				TempleManager.tellPlayer(p, Translation.tr("blockListener.cantBreakSB"));
     				event.setCancelled(true);
     				return;
     			}
@@ -62,7 +63,7 @@ public class TCBlockListener extends BlockListener
     	
     	for(ScoreBoard sb : TempleManager.SBManager.scoreBoards){
     		if(sb.inRegion(b.getLocation())){
-    			TempleManager.tellPlayer(p, "This Block is Protected by ScoreBoard"+sb.id);
+    			TempleManager.tellPlayer(p, Translation.tr("blockListener.cantBreakSBB", sb.id));
 				event.setCancelled(true);
 				return;
     		}
@@ -151,7 +152,7 @@ public class TCBlockListener extends BlockListener
     	if(temple == null){
     		if(event.getLine(0).equals("[TCSB]") || event.getLine(0).equals("[TCS]") || event.getLine(0).equals("[TC]") || event.getLine(0).equals("[TempleCraft]")){
     			if(!TCPermissionHandler.hasPermission(p, "templecraft.placesigns")){
-    				TempleManager.tellPlayer(p, "You do not have permission to place temple entrances.");
+    				TempleManager.tellPlayer(p, Translation.tr("blockListener.cantPlaceEntrance"));
     				event.setCancelled(true);
     				return;
     			}
