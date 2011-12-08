@@ -124,6 +124,7 @@ public class TCDamageListener extends EntityListener
                 game = tp.currentGame;
                 
                 lastDamager = game.lastDamager.remove(event.getEntity().getEntityId());
+                game.playerDeath(p);
             } else {
             	// If a monster died
 	            game = TCUtils.getGame(e);

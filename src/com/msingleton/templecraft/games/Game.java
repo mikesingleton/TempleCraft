@@ -908,8 +908,6 @@ public class Game{
             	TemplePlayer tp2 = TempleManager.templePlayerMap.get((Player)killer);
             	tp2.roundPlayersKilled++;
             }
-            
-            playerDeath(p);
         } else {            
             if(killer instanceof Player)
 	           	TempleManager.templePlayerMap.get(killer).roundMobsKilled++;
