@@ -44,7 +44,8 @@ public class PVP extends Game{
 	public void convertLobby(){
 		super.convertLobby();
 		for(int i : lobbyLocMap.values())
-			scores[i] = 0;
+			if(i != -1)
+				scores[i] = 0;
 	}
 	
 	public void playerDeath(Player p)

@@ -28,7 +28,11 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.CaveSpider;
 import org.bukkit.entity.Creature;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Ghast;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.PigZombie;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
@@ -829,12 +833,23 @@ public class TCUtils
     private static String getDisplayName(Entity entity) {
     	if(entity instanceof Player)
     		return ((Player)entity).getDisplayName();
-    	if(entity instanceof CaveSpider)
-    		return "Cave Spider";
-    	if(entity instanceof PigZombie)
-    		return "Pig Zombie";
-    	if(entity instanceof Creature)
-    		return ((Creature)entity).getClass().getSimpleName().replace("Craft", "");
+    	if(entity instanceof EnderDragon)
+    		return "Ender Dragon";
+    	if(entity instanceof Creature){
+    		String name = ((Creature)entity).getClass().getSimpleName().replace("Craft", "");
+    		
+    		StringBuilder formatted = new StringBuilder();
+    		for(int i = 0; i < name.length(); i++){
+    			if(i != 0 && Character.isUpperCase(name.charAt(i)))
+    				formatted.append(" ");
+    			formatted.append(name.charAt(i));
+    		}
+    		return formatted.toString();
+    	}
+    	if(entity instanceof Ghast)
+    		return "Ghast";
+    	if(entity instanceof MagmaCube)
+    		return "Magma Cube";
     	if(entity instanceof Slime)
     		return "Slime";
 		return "";

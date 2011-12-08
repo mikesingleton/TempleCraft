@@ -777,6 +777,8 @@ public class Game{
 					else
 						p.teleport(getPlayerSpawnLoc(tp));
 	   
+	        		if(tp.team != -1)
+		    			p.getInventory().setHelmet(new ItemStack(Material.WOOL,1,(short)0,(byte)team));
         		} else {
         			TempleManager.tellPlayer(p, Translation.tr("adventure.rejoinFail1"));
         			TempleManager.tellPlayer(p, Translation.tr("adventure.rejoinFail2"));
@@ -794,6 +796,9 @@ public class Game{
     				TCUtils.keepPlayerInventory(p);
     				TCUtils.restoreHealth(p);
 				}
+        		
+        		if(tp.team != -1)
+	    			p.getInventory().setHelmet(new ItemStack(Material.WOOL,1,(short)0,(byte)team));
         	}
     	} else {
     		tellPlayer(p, Translation.tr("game.pickAClass"));

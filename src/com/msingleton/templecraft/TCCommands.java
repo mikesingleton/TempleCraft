@@ -147,9 +147,9 @@ public class TCCommands implements CommandExecutor
         			temple = it.next();
         			if(temple != null){
         				if(temple.isSetup){
-            				line.append(Translation.tr("templeSetup",temple.templeName));
+            				line.append(Translation.tr("templeListSetup",temple.templeName));
             			} else {
-            				line.append(Translation.tr("templeNotSetup",temple.templeName));
+            				line.append(Translation.tr("templeListNotSetup",temple.templeName));
             			}
             		}
         		}

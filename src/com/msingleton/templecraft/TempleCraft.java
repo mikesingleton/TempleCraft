@@ -47,7 +47,7 @@ public class TempleCraft extends JavaPlugin
     public List<String> ENABLED_COMMANDS;
     public static Method method = null;
     public static PermissionHandler permissionHandler;
-    public static HeroManager heroManager = null;
+    public static HeroManager heroManager;
     public static String language;
     public static String fileExtention = ".tcf";
     public static ChatColor c1 = ChatColor.DARK_AQUA;
@@ -184,6 +184,8 @@ public class TempleCraft extends JavaPlugin
         	return;
         
         heroManager = ((Heroes) heroes).getHeroManager();
+        if(heroManager != null)
+        	System.out.println("[TempleCraft] Hooked into Heroes");
     }
     
     public File getPluginFile(){

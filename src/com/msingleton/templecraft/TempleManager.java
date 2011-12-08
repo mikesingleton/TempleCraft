@@ -52,7 +52,7 @@ public class TempleManager
     public static String breakableMats;
     public static String goldPerMob;
     
-    final public static Set<String> modes = new HashSet<String>(Arrays.asList("adventure","race","spleef"));
+    final public static Set<String> modes = new HashSet<String>(Arrays.asList("adventure","race","spleef","pvp"));
     //future modes: "race","ctf","koth","assult","assassin"
     
     // Flatland Configs
